@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 from configparser import ConfigParser
+import signal
+import sys
 from common.server import Server
 import logging
 import os
@@ -34,6 +36,14 @@ def initialize_config():
     return config_params
 
 
+
+global server
+def signal_handler(sig, frame):
+    server.shutdown()
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, signal_handler)
+
 def main():
     config_params = initialize_config()
     logging_level = config_params["logging_level"]
@@ -48,6 +58,7 @@ def main():
                   f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
     # Initialize server and start server loop
+    global server
     server = Server(port, listen_backlog)
     server.run()
 

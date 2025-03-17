@@ -8,6 +8,8 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self.running = True
+        self.current_connection = None
 
     def run(self):
         """
@@ -20,9 +22,17 @@ class Server:
 
         # TODO: Modify this program to handle signal to graceful shutdown
         # the server
-        while True:
+        while self.running:
             client_sock = self.__accept_new_connection()
+            self.current_connection = client_sock
             self.__handle_client_connection(client_sock)
+            self.current_connection = None
+
+    def shutdown(self):
+        self.running = False
+        if self.current_connection:
+            self.current_connection.close()
+            logging.info(f"action: connection closed | result: success | connection: {self.current_connection.getsockname()}")
 
     def __handle_client_connection(self, client_sock):
         """
