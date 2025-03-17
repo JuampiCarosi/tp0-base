@@ -8,3 +8,8 @@ log:
   level: "INFO"
 batch:
   maxAmount: 10
+nombre: "Juan"
+apellido: "Perez"
+documento: "1234567890"
+nacimiento: "1990-01-01"
+numero: 123456

@@ -20,19 +20,29 @@ type ClientConfig struct {
 	LoopPeriod    time.Duration
 }
 
+type Bet struct {
+	Name         string
+	SurName      string
+	Document     string
+	BirthDate    time.Time
+	BettedNumber int
+}
+
 // Client Entity that encapsulates how
 type Client struct {
 	config   ClientConfig
 	conn     net.Conn
 	shutdown bool
+	bet      Bet
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
-func NewClient(config ClientConfig) *Client {
+func NewClient(config ClientConfig, bet Bet) *Client {
 	client := &Client{
 		config:   config,
 		shutdown: false,
+		bet:      bet,
 	}
 	return client
 }
@@ -65,29 +75,46 @@ func (c *Client) StartClientLoop() {
 
 		c.createClientSocket()
 
-		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
-			c.conn,
-			"[CLIENT %v] Message N°%v\n",
-			c.config.ID,
-			msgID,
-		)
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
+		bet := []byte(fmt.Sprintf("%v;%v;%v;%v;%v;%v", c.config.ID, c.bet.Name, c.bet.SurName, c.bet.Document, c.bet.BirthDate, c.bet.BettedNumber))
+		lenBytes := []byte(fmt.Sprintf("%v ", len(bet)))
+		message := append(lenBytes, bet...)
+
+		written, err := c.conn.Write(message)
+		for written < len(message) {
+			written, err = c.conn.Write(message[written:])
+		}
 
 		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
 			return
 		}
 
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-			c.config.ID,
-			msg,
-		)
+		msg, err := bufio.NewReader(c.conn).ReadString('\n')
+		c.conn.Close()
 
+		if err != nil {
+			log.Errorf("action: apuesta enviada | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+
+		if msg != "OK\n" {
+			log.Errorf("action: apuesta enviada | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				msg,
+			)
+			return
+		}
+
+		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
+			c.bet.Document,
+			c.bet.BettedNumber,
+		)
 		// Wait a time between sending one message and the next one
 		time.Sleep(c.config.LoopPeriod)
 

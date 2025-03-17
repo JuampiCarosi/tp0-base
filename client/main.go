@@ -8,11 +8,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-
-	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
 )
 
 var log = logging.MustGetLogger("log")
@@ -39,7 +38,11 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "period")
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
-
+	v.BindEnv("nombre")
+	v.BindEnv("apellido")
+	v.BindEnv("documento")
+	v.BindEnv("nacimiento")
+	v.BindEnv("numero")
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
 	// can be loaded from the environment variables so we shouldn't
@@ -83,12 +86,17 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s",
+	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | nombre: %s | apellido: %s | documento: %s | nacimiento: %v | numero: %v",
 		v.GetString("id"),
 		v.GetString("server.address"),
 		v.GetInt("loop.amount"),
 		v.GetDuration("loop.period"),
 		v.GetString("log.level"),
+		v.GetString("nombre"),
+		v.GetString("apellido"),
+		v.GetString("documento"),
+		v.GetTime("nacimiento"),
+		v.GetInt("numero"),
 	)
 }
 
@@ -120,7 +128,15 @@ func main() {
 		LoopPeriod:    v.GetDuration("loop.period"),
 	}
 
-	client := common.NewClient(clientConfig)
+	bet := common.Bet{
+		Name:         v.GetString("nombre"),
+		SurName:      v.GetString("apellido"),
+		Document:     v.GetString("documento"),
+		BirthDate:    v.GetTime("nacimiento"),
+		BettedNumber: v.GetInt("numero"),
+	}
+
+	client := common.NewClient(clientConfig, bet)
 	go gracefulShutdown(client)
 
 	client.StartClientLoop()
