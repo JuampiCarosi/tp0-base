@@ -1,4 +1,4 @@
 #!/bin/bash
 echo "Nombre del archivo de salida: $1"
 echo "Cantidad de clientes: $2"
-./bin/compose_generator $1 $2
+go run scripts/compose_generator.go $1 $2
