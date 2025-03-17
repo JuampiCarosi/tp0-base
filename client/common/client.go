@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"time"
 
 	"github.com/op/go-logging"
@@ -21,15 +22,17 @@ type ClientConfig struct {
 
 // Client Entity that encapsulates how
 type Client struct {
-	config ClientConfig
-	conn   net.Conn
+	config   ClientConfig
+	conn     net.Conn
+	shutdown bool
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
-		config: config,
+		config:   config,
+		shutdown: false,
 	}
 	return client
 }
@@ -56,6 +59,10 @@ func (c *Client) StartClientLoop() {
 	// Messages if the message amount threshold has not been surpassed
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
 		// Create the connection the server in every loop iteration. Send an
+		if c.shutdown {
+			break
+		}
+
 		c.createClientSocket()
 
 		// TODO: Modify the send to avoid short-write
@@ -86,4 +93,16 @@ func (c *Client) StartClientLoop() {
 
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+}
+
+func (c *Client) Cleanup(signal os.Signal) {
+	c.shutdown = true
+	if c.conn == nil {
+		return
+	}
+
+	err := c.conn.Close()
+	if err != nil {
+		log.Infof("action: connection closed | client_id: %v | signal: %v | closed resource: %v", c.config.ID, signal, err)
+	}
 }
