@@ -39,6 +39,8 @@ services:
       - LOGGING_LEVEL=DEBUG
     networks:
       - testing_net
+    volumes:
+      - ./server/config.ini:/config.ini
 
 {{range $i := .}}
   client{{$i}}:
@@ -48,6 +50,8 @@ services:
     environment:
       - CLI_ID={{$i}}
       - CLI_LOG_LEVEL=DEBUG
+    volumes:
+      - ./client/config.yaml:/config.yaml
     networks:
       - testing_net
     depends_on:
