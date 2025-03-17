@@ -12,7 +12,7 @@ deps:
 	go mod vendor
 
 build: deps
-	GOOS=linux go build -o bin/client github.com/7574-sistemas-distribuidos/docker-compose-init/client
+	go build -o bin/client ./client/main.go
 .PHONY: build
 
 docker-image:
