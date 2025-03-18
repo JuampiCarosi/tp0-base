@@ -47,11 +47,11 @@ services:
     container_name: client{{$i}}
     image: client:latest
     entrypoint: /client
+		volumes:
+			- ./client/config.yaml:/config.yaml
     environment:
       - CLI_ID={{$i}}
       - CLI_LOG_LEVEL=DEBUG
-    volumes:
-      - ./client/config.yaml:/config.yaml
     networks:
       - testing_net
     depends_on:
