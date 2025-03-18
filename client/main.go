@@ -97,6 +97,7 @@ func gracefulShutdown(c *common.Client) {
 	signal.Notify(quit, syscall.SIGTERM)
 	s := <-quit
 	c.Cleanup(s)
+	os.Exit(0)
 }
 
 func main() {
