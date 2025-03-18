@@ -1,3 +1,6 @@
+# syntax=docker/dockerfile:1.7-labs
+
+
 FROM golang:1.17 AS builder
 # Client uses docker multistage builds feature https://docs.docker.com/develop/develop-images/multistage-build/
 # First stage is used to compile golang binary and second stage is used to only copy the 
@@ -9,7 +12,7 @@ LABEL intermediateStageToBeDeleted=true
 
 RUN mkdir -p /build
 WORKDIR /build/
-COPY . .
+COPY --exclude=config.yaml . .
 # CGO_ENABLED must be disabled to run go binary in Alpine
 RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -o bin/client github.com/7574-sistemas-distribuidos/docker-compose-init/client
 
