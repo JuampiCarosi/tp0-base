@@ -103,6 +103,6 @@ func (c *Client) Cleanup(signal os.Signal) {
 
 	err := c.conn.Close()
 	if err != nil {
-		log.Infof("action: connection closed | client_id: %v | signal: %v | closed resource: %v", c.config.ID, signal, err)
+		log.Infof("action: connection_closed | result: success | client_id: %v | signal: %v | closed resource: %v", c.config.ID, signal, err)
 	}
 }
