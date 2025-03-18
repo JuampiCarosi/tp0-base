@@ -46,10 +46,10 @@ services:
     container_name: client{{$i}}
     image: client:latest
     entrypoint: /client
-    environment:
-      - CLI_ID={{$i}}
     volumes:
       - ./client/config.yaml:/config.yaml
+    environment:
+      - CLI_ID={{$i}}
     networks:
       - testing_net
     depends_on:
