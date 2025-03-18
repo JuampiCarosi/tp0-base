@@ -19,6 +19,11 @@ services:
       - ./client/config.yaml:/config.yaml
     environment:
       - CLI_ID=1
+      - CLI_NOMBRE=Juan-1
+      - CLI_APELLIDO=Perez-1
+      - CLI_DOCUMENTO=1
+      - CLI_NACIMIENTO=1990-01-01
+      - CLI_NUMERO=1
     networks:
       - testing_net
     depends_on:
