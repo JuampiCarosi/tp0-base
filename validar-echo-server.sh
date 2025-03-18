@@ -1,8 +1,8 @@
 #!/bin/bash
 
-docker run --network=tp0_testing_net alpine  /bin/sh -c 'apk add netcat-openbsd > /dev/null && nc -z -v server 12345'  > /dev/null 2>&1
+result=$(docker run --network=tp0_testing_net alpine  /bin/sh -c 'echo "test" | nc server 12345')
 
-if [ $? -ne 0 ]; then
+if [ $? -ne 0 -o "$result" != "test" ]; then
     echo "action: test_echo_server | result: fail"
     exit 1
 fi
