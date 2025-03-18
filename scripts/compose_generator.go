@@ -50,6 +50,11 @@ services:
       - ./client/config.yaml:/config.yaml
     environment:
       - CLI_ID={{$i}}
+		  - CLI_NOMBRE=Juan-{{$i}}
+		  - CLI_APELLIDO=Perez-{{$i}}
+		  - CLI_DOCUMENTO={{$i}}
+		  - CLI_NACIMIENTO=1990-01-01
+		  - CLI_NUMERO={{$i}}
     networks:
       - testing_net
     depends_on:
