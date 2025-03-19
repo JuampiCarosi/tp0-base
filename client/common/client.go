@@ -73,9 +73,15 @@ func (c *Client) StartClientLoop() {
 			break
 		}
 
-		c.createClientSocket()
-
-		bet := []byte(fmt.Sprintf("%v;%v;%v;%v;%v;%v", c.config.ID, c.bet.Name, c.bet.SurName, c.bet.Document, c.bet.BirthDate, c.bet.BettedNumber))
+		err := c.createClientSocket()
+		if err != nil {
+			log.Errorf("action: create_client_socket | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+		bet := []byte(fmt.Sprintf("%v;%v;%v;%v;%v;%v", c.config.ID, c.bet.Name, c.bet.SurName, c.bet.Document, c.bet.BirthDate.Format("2006-01-02"), c.bet.BettedNumber))
 		lenBytes := []byte(fmt.Sprintf("%v ", len(bet)))
 		message := append(lenBytes, bet...)
 
@@ -91,7 +97,6 @@ func (c *Client) StartClientLoop() {
 			)
 			return
 		}
-
 		msg, err := bufio.NewReader(c.conn).ReadString('\n')
 		c.conn.Close()
 
