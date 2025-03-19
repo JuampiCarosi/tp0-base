@@ -3,11 +3,14 @@ services:
   server:
     container_name: server
     image: server:latest
-    entrypoint: /server
+    entrypoint: python3 /main.py
+    environment:
+      - PYTHONUNBUFFERED=1
     networks:
       - testing_net
     volumes:
       - ./server/config.ini:/config.ini
+
 
   client1:
     container_name: client1
@@ -26,6 +29,7 @@ services:
       - testing_net
     depends_on:
       - server
+
 
 networks:
   testing_net:
