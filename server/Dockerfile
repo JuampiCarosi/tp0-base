@@ -15,7 +15,7 @@ WORKDIR /build/
 COPY --exclude=config.ini . .
 # CGO_ENABLED must be disabled to run go binary in Alpine
 RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -o bin/server github.com/7574-sistemas-distribuidos/docker-compose-init/server
-
+RUN go test -v github.com/7574-sistemas-distribuidos/docker-compose-init/server/bets
 
 FROM busybox:latest
 COPY --from=builder /build/bin/server /server
