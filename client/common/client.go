@@ -84,9 +84,7 @@ func (c *Client) SendBatches() error {
 		batch, err := c.LoadAgencyBatch(reader)
 		if err == io.EOF {
 			eof = true
-		}
-
-		if err != nil {
+		} else if err != nil {
 			log.Errorf("action: load_agency_batch | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
