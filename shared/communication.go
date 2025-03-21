@@ -18,6 +18,7 @@ type MessageType int32
 const (
 	BetType MessageType = iota
 	BetResponseType
+	BatchBetType
 )
 
 type Message interface {
@@ -39,18 +40,15 @@ func (m *BetMessage) Serialize() ([]byte, error) {
 	payload := []byte(fmt.Sprintf("%v;%v;%v;%v;%v;%v", m.ReceivedBet.Agency, m.ReceivedBet.FirstName, m.ReceivedBet.LastName, m.ReceivedBet.Document, m.ReceivedBet.BirthDate.Format("2006-01-02"), m.ReceivedBet.Number))
 	buffer := bytes.NewBuffer([]byte{})
 
-	binary.Write(buffer, binary.BigEndian, uint8(BetType))
-	binary.Write(buffer, binary.BigEndian, uint8(len(payload)))
+	binary.Write(buffer, binary.BigEndian, uint32(BetType))
+	binary.Write(buffer, binary.BigEndian, uint32(len(payload)))
+
 	buffer.Write(payload)
 	return buffer.Bytes(), nil
 }
 
 func (m *BetMessage) Deserialize(data string) error {
 	parts := strings.Split(data, ";")
-
-	println(data)
-	println(parts)
-
 	number, err := strconv.Atoi(parts[5])
 	if err != nil {
 		return err
@@ -76,8 +74,8 @@ func (m *BetResponse) Serialize() ([]byte, error) {
 	}
 
 	buffer := bytes.NewBuffer([]byte{})
-	binary.Write(buffer, binary.BigEndian, uint8(BetResponseType))
-	binary.Write(buffer, binary.BigEndian, uint8(len(payload)))
+	binary.Write(buffer, binary.BigEndian, uint32(BetResponseType))
+	binary.Write(buffer, binary.BigEndian, uint32(len(payload)))
 	buffer.Write([]byte(payload))
 
 	return buffer.Bytes(), nil
@@ -93,6 +91,42 @@ func (m *BetResponse) Deserialize(data string) error {
 	return nil
 }
 
+type BatchBetMessage struct {
+	Message
+	ReceivedBets [][]string
+}
+
+func (m *BatchBetMessage) GetMessageType() MessageType {
+	return BatchBetType
+}
+
+func (m *BatchBetMessage) Serialize() ([]byte, error) {
+	var payloadString []string
+	for _, bet := range m.ReceivedBets {
+		payloadString = append(payloadString, fmt.Sprintf("%v;%v;%v;%v;%v;%v", bet[0], bet[1], bet[2], bet[3], bet[4], bet[5]))
+	}
+
+	buffer := bytes.NewBuffer([]byte{})
+	payload := []byte(strings.Join(payloadString, "\n"))
+
+	binary.Write(buffer, binary.BigEndian, uint32(BatchBetType))
+	binary.Write(buffer, binary.BigEndian, uint32(len(payload)))
+
+	buffer.Write(payload)
+	return buffer.Bytes(), nil
+}
+
+func (m *BatchBetMessage) Deserialize(data string) error {
+	lines := strings.Split(data, "\n")
+
+	for _, line := range lines {
+		parts := strings.Split(line, ";")
+		m.ReceivedBets = append(m.ReceivedBets, parts)
+	}
+
+	return nil
+}
+
 type RawMessage struct {
 	Type    MessageType
 	Length  int
@@ -101,21 +135,20 @@ type RawMessage struct {
 
 func MessageFromSocket(socket *net.Conn) (*RawMessage, error) {
 	reader := bufio.NewReader(*socket)
-	u8Buffer := make([]byte, 1)
+	u8Buffer := make([]byte, 4)
 	_, err := io.ReadFull(reader, u8Buffer)
 	if err != nil {
 		return nil, err
 	}
-	messageType := u8Buffer[0]
+	messageType := binary.BigEndian.Uint32(u8Buffer)
 	_, err = io.ReadFull(reader, u8Buffer)
 	if err != nil {
 		return nil, err
 	}
-	messageLength := u8Buffer[0]
+	messageLength := binary.BigEndian.Uint32(u8Buffer)
 
 	payload := make([]byte, messageLength)
-	read, err := io.ReadFull(reader, payload)
-	println(read, messageLength)
+	_, err = io.ReadFull(reader, payload)
 	if err != nil {
 		return nil, err
 	}

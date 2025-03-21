@@ -9,23 +9,21 @@ services:
     volumes:
       - ./server/config.ini:/config.ini
 
+
   client1:
     container_name: client1
     image: client:latest
     entrypoint: /client
     volumes:
       - ./client/config.yaml:/config.yaml
+      - ./.data/agency-1.csv:/agency.csv
     environment:
       - CLI_ID=1
-      - CLI_NOMBRE=Juan-1
-      - CLI_APELLIDO=Perez-1
-      - CLI_DOCUMENTO=46174693
-      - CLI_NACIMIENTO=1990-01-01
-      - CLI_NUMERO=87258
     networks:
       - testing_net
     depends_on:
       - server
+
 
 networks:
   testing_net:

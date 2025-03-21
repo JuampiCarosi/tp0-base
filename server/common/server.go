@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/bets"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/shared"
@@ -82,21 +83,37 @@ func (s *Server) handleClientConnection() {
 		return
 	}
 
-	if messageType.Type != shared.BetType {
+	switch messageType.Type {
+	case shared.BetType:
+		s.handleBetMessage(messageType)
+	case shared.BatchBetType:
+		s.handleBatchBetMessage(messageType)
+	default:
 		log.Printf("action: handle_client_connection | result: fail | error: unknown message type %v", messageType.Type)
 		s.clientConn.Write(errorResponseSerialized)
 		return
 	}
 
+}
+
+func (s *Server) handleBetMessage(message *shared.RawMessage) {
+	errorResponse := shared.BetResponse(false)
+	errorResponseSerialized, err := errorResponse.Serialize()
+	if err != nil {
+		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
+		s.clientConn.Write(errorResponseSerialized)
+		return
+	}
+
 	var betMessage shared.BetMessage
-	err = betMessage.Deserialize(messageType.Payload)
+	err = betMessage.Deserialize(message.Payload)
 	if err != nil {
 		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
 		s.clientConn.Write(errorResponseSerialized)
 		return
 	}
 	bet := betMessage.ReceivedBet
-	err = bets.StoreBets([]bets.Bet{bet})
+	err = bets.StoreBets([]*bets.Bet{&bet})
 
 	if err != nil {
 		log.Printf("action: apuesta_almacenada | result: fail | error: %v", err)
@@ -113,5 +130,72 @@ func (s *Server) handleClientConnection() {
 	}
 
 	log.Printf("action: apuesta_almacenada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
+	s.clientConn.Write(successResponseSerialized)
+}
+
+func (s *Server) handleBatchBetMessage(message *shared.RawMessage) {
+	errorResponse := shared.BetResponse(false)
+	errorResponseSerialized, err := errorResponse.Serialize()
+	if err != nil {
+		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
+		s.clientConn.Write(errorResponseSerialized)
+		return
+	}
+
+	var batchBetMessage shared.BatchBetMessage
+	err = batchBetMessage.Deserialize(message.Payload)
+	if err != nil {
+		s.clientConn.Write(errorResponseSerialized)
+		return
+	}
+
+	var successfullBets []*bets.Bet
+	var errorCount int
+
+	for _, bet := range batchBetMessage.ReceivedBets {
+		number, err := strconv.Atoi(bet[5])
+		if err != nil {
+			errorCount++
+			continue
+		}
+		bet, err := bets.NewBet(bet[0], bet[1], bet[2], bet[3], bet[4], number)
+		if err != nil {
+			errorCount++
+			continue
+		}
+
+		successfullBets = append(successfullBets, bet)
+	}
+
+	if errorCount > 0 {
+		log.Printf("action: apuesta_recibida | result: fail | cantidad: %v", errorCount)
+		s.clientConn.Write(errorResponseSerialized)
+		err = bets.StoreBets(successfullBets)
+
+		if err != nil {
+			log.Printf("action: apuesta_almacenada | result: fail | error: %v", err)
+			s.clientConn.Write(errorResponseSerialized)
+		}
+
+		return
+	}
+
+	err = bets.StoreBets(successfullBets)
+
+	if err != nil {
+		log.Printf("action: apuesta_almacenada | result: fail | error: %v", err)
+		s.clientConn.Write(errorResponseSerialized)
+		return
+	}
+
+	log.Printf("action: apuesta_recibida | result: success | cantidad: %v", len(successfullBets))
+	successResponse := shared.BetResponse(true)
+	successResponseSerialized, err := successResponse.Serialize()
+	if err != nil {
+		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
+		s.clientConn.Write(errorResponseSerialized)
+		return
+	}
+
 	s.clientConn.Write(successResponseSerialized)
 }

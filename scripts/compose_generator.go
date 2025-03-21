@@ -46,13 +46,9 @@ services:
     entrypoint: /client
     volumes:
       - ./client/config.yaml:/config.yaml
+      - ./.data/agency-{{$i}}.csv:/agency.csv
     environment:
       - CLI_ID={{$i}}
-      - CLI_NOMBRE=Juan-{{$i}}
-      - CLI_APELLIDO=Perez-{{$i}}
-      - CLI_DOCUMENTO={{$i}}
-      - CLI_NACIMIENTO=1990-01-01
-      - CLI_NUMERO={{$i}}
     networks:
       - testing_net
     depends_on:

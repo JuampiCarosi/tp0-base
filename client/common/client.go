@@ -1,6 +1,9 @@
 package common
 
 import (
+	"encoding/csv"
+	"errors"
+	"io"
 	"net"
 	"os"
 	"time"
@@ -18,6 +21,7 @@ type ClientConfig struct {
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
+	MaxAmount     int
 }
 
 // Client Entity that encapsulates how
@@ -55,83 +59,130 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
+// SendBatches Send messages to the client until some time threshold is met
+func (c *Client) SendBatches() error {
+	agencyFile, err := os.Open("/agency.csv")
+	if err != nil {
+		log.Errorf("action: load_agency_bets | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return err
+	}
+	defer agencyFile.Close()
+
+	reader := csv.NewReader(agencyFile)
+	reader.Comma = ','
+	reader.FieldsPerRecord = -1
+	eof := false
+	for !c.shutdown && !eof {
 		// Create the connection the server in every loop iteration. Send an
 		if c.shutdown {
 			break
 		}
 
-		err := c.createClientSocket()
+		batch, err := c.LoadAgencyBatch(reader)
+		if err == io.EOF {
+			eof = true
+		}
+
+		if err != nil {
+			log.Errorf("action: load_agency_batch | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			continue
+		}
+
+		err = c.createClientSocket()
 		if err != nil {
 			log.Errorf("action: create_client_socket | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
-			return
+			continue
 		}
 
-		betMessage := shared.BetMessage{
-			ReceivedBet: c.bet,
+		batchMessage := shared.BatchBetMessage{
+			ReceivedBets: batch,
 		}
-		messageBytes, err := betMessage.Serialize()
+		messageBytes, err := batchMessage.Serialize()
 		if err != nil {
 			log.Errorf("action: serialize_message | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
-			return
+			return err
 		}
-		// log.Debugf("messageBytes: %v, length: %v, binary: %b, string: %v", messageBytes, len(messageBytes), messageBytes, string(messageBytes))
 		c.conn.Write(messageBytes)
 
 		response, err := shared.MessageFromSocket(&c.conn)
 
 		if err != nil {
-			log.Errorf("action: apuesta enviada | result: fail | client_id: %v | error: %v",
+			log.Errorf("action: batch_sent | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
-			return
+			return err
 		}
 
 		if response.Type != shared.BetResponseType {
-			log.Errorf("action: apuesta enviada | result: fail | client_id: %v | error: unknown response type %v",
+			log.Errorf("action: batch_sent | result: fail | client_id: %v | error: unknown response type %v",
 				c.config.ID,
 				response.Type,
 			)
-			return
+			return errors.New("unknown response type")
 		}
 
 		var responseMessage shared.BetResponse
 		err = responseMessage.Deserialize(response.Payload)
 		if err != nil {
-			log.Errorf("action: apuesta enviada | result: fail | client_id: %v | error: %v",
+			log.Errorf("action: batch_sent | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
-			return
+			return err
 		}
 
 		if responseMessage {
-			log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
-				c.bet.Document,
-				c.bet.Number,
+			log.Infof("action: batch_sent | result: success | client_id: %v",
+				c.config.ID,
 			)
 		} else {
-			log.Infof("action: apuesta_enviada | result: fail | dni: %v | numero: %v",
-				c.bet.Document,
-				c.bet.Number,
+			log.Infof("action: batch_sent | result: fail | client_id: %v",
+				c.config.ID,
 			)
 		}
 
 		time.Sleep(c.config.LoopPeriod)
 
 	}
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+	log.Infof("action: batches_finished | result: success | client_id: %v", c.config.ID)
+	return nil
+}
+
+func (c *Client) LoadAgencyBatch(reader *csv.Reader) ([][]string, error) {
+
+	var loadedBets [][]string
+
+	for i := 0; i < c.config.MaxAmount; i++ {
+		record, err := reader.Read()
+		if err == io.EOF {
+			return loadedBets, err
+		}
+		if err != nil {
+			log.Errorf("action: load_agency_bets | result: fail | client_id: %v | error: %v",
+				c.config.ID, err)
+			return nil, err
+		}
+
+		recordWithAgency := append([]string{c.config.ID}, record...)
+
+		loadedBets = append(loadedBets, recordWithAgency)
+	}
+
+	return loadedBets, nil
+
 }
 
 func (c *Client) Cleanup(signal os.Signal) {

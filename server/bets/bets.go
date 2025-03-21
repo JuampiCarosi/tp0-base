@@ -44,7 +44,7 @@ func HasWon(bet *Bet) bool {
 	return bet.Number == LOTTERY_WINNER_NUMBER
 }
 
-func StoreBets(bets []Bet) error {
+func StoreBets(bets []*Bet) error {
 	file, err := os.OpenFile(STORAGE_FILEPATH, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("error opening file: %v", err)
