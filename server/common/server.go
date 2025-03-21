@@ -134,18 +134,11 @@ func (s *Server) handleBetMessage(message *shared.RawMessage) {
 }
 
 func (s *Server) handleBatchBetMessage(message *shared.RawMessage) {
-	errorResponse := shared.BetResponse(false)
-	errorResponseSerialized, err := errorResponse.Serialize()
-	if err != nil {
-		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
-		s.clientConn.Write(errorResponseSerialized)
-		return
-	}
 
 	var batchBetMessage shared.BatchBetMessage
-	err = batchBetMessage.Deserialize(message.Payload)
+	err := batchBetMessage.Deserialize(message.Payload)
 	if err != nil {
-		s.clientConn.Write(errorResponseSerialized)
+		sendResponse(s.clientConn, shared.BetResponse(false))
 		return
 	}
 
@@ -169,12 +162,12 @@ func (s *Server) handleBatchBetMessage(message *shared.RawMessage) {
 
 	if errorCount > 0 {
 		log.Printf("action: apuesta_recibida | result: fail | cantidad: %v", errorCount)
-		s.clientConn.Write(errorResponseSerialized)
+		sendResponse(s.clientConn, shared.BetResponse(false))
 		err = bets.StoreBets(successfullBets)
 
 		if err != nil {
 			log.Printf("action: apuesta_almacenada | result: fail | error: %v", err)
-			s.clientConn.Write(errorResponseSerialized)
+			sendResponse(s.clientConn, shared.BetResponse(false))
 		}
 
 		return
@@ -184,18 +177,16 @@ func (s *Server) handleBatchBetMessage(message *shared.RawMessage) {
 
 	if err != nil {
 		log.Printf("action: apuesta_almacenada | result: fail | error: %v", err)
-		s.clientConn.Write(errorResponseSerialized)
+		sendResponse(s.clientConn, shared.BetResponse(false))
 		return
 	}
 
 	log.Printf("action: apuesta_recibida | result: success | cantidad: %v", len(successfullBets))
-	successResponse := shared.BetResponse(true)
-	successResponseSerialized, err := successResponse.Serialize()
-	if err != nil {
-		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
-		s.clientConn.Write(errorResponseSerialized)
-		return
-	}
 
-	s.clientConn.Write(successResponseSerialized)
+	sendResponse(s.clientConn, shared.BetResponse(true))
+}
+
+func sendResponse(conn net.Conn, response shared.BetResponse) error {
+	responseSerialized, _ := response.Serialize()
+	return shared.WriteSafe(conn, responseSerialized)
 }

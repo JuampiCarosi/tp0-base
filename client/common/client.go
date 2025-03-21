@@ -112,7 +112,14 @@ func (c *Client) SendBatches() error {
 			)
 			return err
 		}
-		c.conn.Write(messageBytes)
+		err = shared.WriteSafe(c.conn, messageBytes)
+		if err != nil {
+			log.Errorf("action: write_message | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return err
+		}
 
 		response, err := shared.MessageFromSocket(&c.conn)
 
