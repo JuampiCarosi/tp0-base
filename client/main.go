@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/client"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/bets"
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
@@ -101,7 +101,7 @@ func PrintConfig(v *viper.Viper) {
 	)
 }
 
-func gracefulShutdown(c *client.Client) {
+func gracefulShutdown(c *common.Client) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM)
 	s := <-quit
@@ -122,7 +122,7 @@ func main() {
 	// Print program config with debugging purposes
 	PrintConfig(v)
 
-	clientConfig := client.ClientConfig{
+	clientConfig := common.ClientConfig{
 		ServerAddress: v.GetString("server.address"),
 		ID:            v.GetString("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
@@ -137,7 +137,7 @@ func main() {
 		Number:    v.GetInt("numero"),
 	}
 
-	client := client.NewClient(clientConfig, bet)
+	client := common.NewClient(clientConfig, bet)
 	go gracefulShutdown(client)
 
 	client.StartClientLoop()

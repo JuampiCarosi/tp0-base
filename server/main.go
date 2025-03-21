@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/common"
 	"github.com/op/go-logging"
@@ -90,6 +92,15 @@ func PrintConfig(config *Config) {
 	)
 }
 
+func gracefulShutdown(s *common.Server) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM)
+	receivedSignal := <-quit
+	s.Shutdown()
+	log.Infof("action: graceful_shutdown | result: success | signal: %v", receivedSignal)
+	os.Exit(0)
+}
+
 func main() {
 	config, err := InitConfig()
 	if err != nil {
@@ -110,5 +121,6 @@ func main() {
 		os.Exit(1)
 	}
 
+	go gracefulShutdown(server)
 	server.Run()
 }
