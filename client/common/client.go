@@ -1,12 +1,12 @@
-package client
+package common
 
 import (
 	"net"
 	"os"
 	"time"
 
-	"github.com/7574-sistemas-distribuidos/docker-compose-init/comm"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/bets"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/shared"
 	"github.com/op/go-logging"
 )
 
@@ -74,7 +74,7 @@ func (c *Client) StartClientLoop() {
 			return
 		}
 
-		betMessage := comm.BetMessage{
+		betMessage := shared.BetMessage{
 			ReceivedBet: c.bet,
 		}
 		messageBytes, err := betMessage.Serialize()
@@ -88,7 +88,7 @@ func (c *Client) StartClientLoop() {
 		// log.Debugf("messageBytes: %v, length: %v, binary: %b, string: %v", messageBytes, len(messageBytes), messageBytes, string(messageBytes))
 		c.conn.Write(messageBytes)
 
-		response, err := comm.MessageFromSocket(&c.conn)
+		response, err := shared.MessageFromSocket(&c.conn)
 
 		if err != nil {
 			log.Errorf("action: apuesta enviada | result: fail | client_id: %v | error: %v",
@@ -98,7 +98,7 @@ func (c *Client) StartClientLoop() {
 			return
 		}
 
-		if response.Type != comm.BetResponseType {
+		if response.Type != shared.BetResponseType {
 			log.Errorf("action: apuesta enviada | result: fail | client_id: %v | error: unknown response type %v",
 				c.config.ID,
 				response.Type,
@@ -106,7 +106,7 @@ func (c *Client) StartClientLoop() {
 			return
 		}
 
-		var responseMessage comm.BetResponse
+		var responseMessage shared.BetResponse
 		err = responseMessage.Deserialize(response.Payload)
 		if err != nil {
 			log.Errorf("action: apuesta enviada | result: fail | client_id: %v | error: %v",

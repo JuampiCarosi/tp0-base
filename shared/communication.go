@@ -1,4 +1,4 @@
-package comm
+package shared
 
 import (
 	"bufio"

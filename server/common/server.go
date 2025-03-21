@@ -5,8 +5,8 @@ import (
 	"log"
 	"net"
 
-	"github.com/7574-sistemas-distribuidos/docker-compose-init/comm"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/bets"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/shared"
 )
 
 type Server struct {
@@ -47,7 +47,7 @@ func (s *Server) Shutdown() {
 	s.running = false
 	if s.clientConn != nil {
 		s.clientConn.Close()
-		log.Printf("action: connection closed | result: success | connection: %v", s.clientConn.LocalAddr())
+		log.Printf("action: connection_closed | result: success | connection: %v", s.clientConn.LocalAddr())
 	}
 	if s.serverSocket != nil {
 		s.serverSocket.Close()
@@ -67,7 +67,7 @@ func (s *Server) acceptNewConnection() (net.Conn, error) {
 
 func (s *Server) handleClientConnection() {
 	defer s.clientConn.Close()
-	errorResponse := comm.BetResponse(false)
+	errorResponse := shared.BetResponse(false)
 	errorResponseSerialized, err := errorResponse.Serialize()
 
 	if err != nil {
@@ -75,20 +75,20 @@ func (s *Server) handleClientConnection() {
 		return
 	}
 
-	messageType, err := comm.MessageFromSocket(&s.clientConn)
+	messageType, err := shared.MessageFromSocket(&s.clientConn)
 	if err != nil {
 		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
 		s.clientConn.Write(errorResponseSerialized)
 		return
 	}
 
-	if messageType.Type != comm.BetType {
+	if messageType.Type != shared.BetType {
 		log.Printf("action: handle_client_connection | result: fail | error: unknown message type %v", messageType.Type)
 		s.clientConn.Write(errorResponseSerialized)
 		return
 	}
 
-	var betMessage comm.BetMessage
+	var betMessage shared.BetMessage
 	err = betMessage.Deserialize(messageType.Payload)
 	if err != nil {
 		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
@@ -104,7 +104,7 @@ func (s *Server) handleClientConnection() {
 		return
 	}
 
-	successResponse := comm.BetResponse(true)
+	successResponse := shared.BetResponse(true)
 	successResponseSerialized, err := successResponse.Serialize()
 	if err != nil {
 		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
