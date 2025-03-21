@@ -8,7 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/client"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/bets"
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -100,7 +101,7 @@ func PrintConfig(v *viper.Viper) {
 	)
 }
 
-func gracefulShutdown(c *common.Client) {
+func gracefulShutdown(c *client.Client) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM)
 	s := <-quit
@@ -121,22 +122,22 @@ func main() {
 	// Print program config with debugging purposes
 	PrintConfig(v)
 
-	clientConfig := common.ClientConfig{
+	clientConfig := client.ClientConfig{
 		ServerAddress: v.GetString("server.address"),
 		ID:            v.GetString("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
 	}
 
-	bet := common.Bet{
-		Name:         v.GetString("nombre"),
-		SurName:      v.GetString("apellido"),
-		Document:     v.GetString("documento"),
-		BirthDate:    v.GetTime("nacimiento"),
-		BettedNumber: v.GetInt("numero"),
+	bet := bets.Bet{
+		FirstName: v.GetString("nombre"),
+		LastName:  v.GetString("apellido"),
+		Document:  v.GetString("documento"),
+		BirthDate: v.GetTime("nacimiento"),
+		Number:    v.GetInt("numero"),
 	}
 
-	client := common.NewClient(clientConfig, bet)
+	client := client.NewClient(clientConfig, bet)
 	go gracefulShutdown(client)
 
 	client.StartClientLoop()
