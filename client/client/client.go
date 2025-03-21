@@ -1,12 +1,12 @@
-package common
+package client
 
 import (
-	"bufio"
-	"fmt"
 	"net"
 	"os"
 	"time"
 
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/comm"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/bets"
 	"github.com/op/go-logging"
 )
 
@@ -20,25 +20,17 @@ type ClientConfig struct {
 	LoopPeriod    time.Duration
 }
 
-type Bet struct {
-	Name         string
-	SurName      string
-	Document     string
-	BirthDate    time.Time
-	BettedNumber int
-}
-
 // Client Entity that encapsulates how
 type Client struct {
 	config   ClientConfig
 	conn     net.Conn
 	shutdown bool
-	bet      Bet
+	bet      bets.Bet
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
-func NewClient(config ClientConfig, bet Bet) *Client {
+func NewClient(config ClientConfig, bet bets.Bet) *Client {
 	client := &Client{
 		config:   config,
 		shutdown: false,
@@ -81,24 +73,22 @@ func (c *Client) StartClientLoop() {
 			)
 			return
 		}
-		bet := []byte(fmt.Sprintf("%v;%v;%v;%v;%v;%v", c.config.ID, c.bet.Name, c.bet.SurName, c.bet.Document, c.bet.BirthDate.Format("2006-01-02"), c.bet.BettedNumber))
-		lenBytes := []byte(fmt.Sprintf("%v ", len(bet)))
-		message := append(lenBytes, bet...)
 
-		written, err := c.conn.Write(message)
-		for written < len(message) {
-			written, err = c.conn.Write(message[written:])
+		betMessage := comm.BetMessage{
+			ReceivedBet: c.bet,
 		}
-
+		messageBytes, err := betMessage.Serialize()
 		if err != nil {
-			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
+			log.Errorf("action: serialize_message | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
 			return
 		}
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
+		// log.Debugf("messageBytes: %v, length: %v, binary: %b, string: %v", messageBytes, len(messageBytes), messageBytes, string(messageBytes))
+		c.conn.Write(messageBytes)
+
+		response, err := comm.MessageFromSocket(&c.conn)
 
 		if err != nil {
 			log.Errorf("action: apuesta enviada | result: fail | client_id: %v | error: %v",
@@ -108,19 +98,36 @@ func (c *Client) StartClientLoop() {
 			return
 		}
 
-		if msg != "OK\n" {
-			log.Errorf("action: apuesta enviada | result: fail | client_id: %v | error: %v",
+		if response.Type != comm.BetResponseType {
+			log.Errorf("action: apuesta enviada | result: fail | client_id: %v | error: unknown response type %v",
 				c.config.ID,
-				msg,
+				response.Type,
 			)
 			return
 		}
 
-		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
-			c.bet.Document,
-			c.bet.BettedNumber,
-		)
-		// Wait a time between sending one message and the next one
+		var responseMessage comm.BetResponse
+		err = responseMessage.Deserialize(response.Payload)
+		if err != nil {
+			log.Errorf("action: apuesta enviada | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+
+		if responseMessage {
+			log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
+				c.bet.Document,
+				c.bet.Number,
+			)
+		} else {
+			log.Infof("action: apuesta_enviada | result: fail | dni: %v | numero: %v",
+				c.bet.Document,
+				c.bet.Number,
+			)
+		}
+
 		time.Sleep(c.config.LoopPeriod)
 
 	}

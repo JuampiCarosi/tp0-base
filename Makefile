@@ -13,6 +13,7 @@ deps:
 
 build: deps
 	go build -o bin/client ./client/main.go
+	go build -o bin/server ./server/main.go
 .PHONY: build
 
 docker-image:

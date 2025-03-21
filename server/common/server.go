@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strconv"
-	"strings"
-	"time"
+
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/comm"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/bets"
 )
 
 type Server struct {
@@ -67,117 +67,51 @@ func (s *Server) acceptNewConnection() (net.Conn, error) {
 
 func (s *Server) handleClientConnection() {
 	defer s.clientConn.Close()
+	errorResponse := comm.BetResponse(false)
+	errorResponseSerialized, err := errorResponse.Serialize()
 
-	// buffer := make([]byte, 1024)
-	// n, err := s.clientConn.Read(buffer)
-	// if err != nil {
-	// 	log.Printf("action: receive_message | result: fail | error: %v", err)
-	// 	return
-	// }
-
-	// log.Printf("action: receive_message | result: success | n: '%v', buffer: '%v'", n, string(buffer))
-
-	buffer := make([]byte, 1024)
-	var message []byte
-	read, err := s.clientConn.Read(buffer)
-	message = append(message, buffer...)
 	if err != nil {
-		log.Printf("action: receive_message | result: fail | error: %v", err)
+		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
 		return
 	}
 
-	for strings.Count(string(message), " ") < 1 {
-		curr, err2 := s.clientConn.Read(buffer)
-		read += curr
-		message = append(message, buffer...)
-
-		if len(buffer) == 0 {
-			log.Printf("action: receive_message | result: fail | error: %v", err2)
-			return
-		}
-
-		if err2 != nil {
-			log.Printf("action: receive_message | result: fail | error: %v", err2)
-			return
-		}
-	}
-	split := strings.SplitN(string(message), " ", 2)
-	lengthStr := split[0]
-	length, err := strconv.Atoi(lengthStr)
-	payload := make([]byte, length)
-	copy(payload, split[1])
+	messageType, err := comm.MessageFromSocket(&s.clientConn)
 	if err != nil {
-		log.Printf("action: receive_message | result: fail | error: %v", err)
-		return
-	}
-	for read < length {
-		curr, err2 := s.clientConn.Read(payload[read:])
-		read += curr
-		if err2 != nil {
-			log.Printf("action: receive_message | result: fail | error: %v", err2)
-			return
-		}
-	}
-
-	bet, err := parseBet(string(payload))
-	if err != nil {
-		log.Printf("action: parse_bet | result: fail | error: %v", err)
-		s.sendResponse("ERROR SAVING BET\n")
+		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
+		s.clientConn.Write(errorResponseSerialized)
 		return
 	}
 
-	err = StoreBets([]*Bet{bet})
+	if messageType.Type != comm.BetType {
+		log.Printf("action: handle_client_connection | result: fail | error: unknown message type %v", messageType.Type)
+		s.clientConn.Write(errorResponseSerialized)
+		return
+	}
+
+	var betMessage comm.BetMessage
+	err = betMessage.Deserialize(messageType.Payload)
+	if err != nil {
+		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
+		s.clientConn.Write(errorResponseSerialized)
+		return
+	}
+	bet := betMessage.ReceivedBet
+	err = bets.StoreBets([]bets.Bet{bet})
+
 	if err != nil {
 		log.Printf("action: apuesta_almacenada | result: fail | error: %v", err)
-		s.sendResponse("ERROR SAVING BET\n")
+		s.clientConn.Write(errorResponseSerialized)
+		return
+	}
+
+	successResponse := comm.BetResponse(true)
+	successResponseSerialized, err := successResponse.Serialize()
+	if err != nil {
+		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
+		s.clientConn.Write(errorResponseSerialized)
 		return
 	}
 
 	log.Printf("action: apuesta_almacenada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
-	s.sendResponse("OK\n")
-}
-
-func (s *Server) sendResponse(response string) {
-	payload := []byte(response)
-	written := 0
-	for written < len(payload) {
-		n, err := s.clientConn.Write(payload[written:])
-		if err != nil {
-			log.Printf("Error sending response: %v", err)
-			return
-		}
-		written += n
-	}
-}
-
-func parseBet(msg string) (*Bet, error) {
-	parts := strings.Split(msg, ";")
-	log.Printf("action: parse_bet | result: success | msg: %v | parts: %v", msg, parts)
-	if len(parts) != 6 {
-		return nil, fmt.Errorf("invalid message format")
-	}
-
-	agency, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return nil, fmt.Errorf("invalid agency: %v", err)
-	}
-
-	birthDate, err := time.Parse("2006-01-02", parts[4])
-	if err != nil {
-		return nil, fmt.Errorf("invalid birthdate: %v", err)
-	}
-
-	number, err := strconv.Atoi(parts[5])
-	if err != nil {
-		return nil, fmt.Errorf("invalid number: %v", err)
-	}
-
-	return &Bet{
-		Agency:    agency,
-		FirstName: parts[1],
-		LastName:  parts[2],
-		Document:  parts[3],
-		BirthDate: birthDate,
-		Number:    number,
-	}, nil
+	s.clientConn.Write(successResponseSerialized)
 }
