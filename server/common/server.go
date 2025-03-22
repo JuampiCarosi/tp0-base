@@ -206,6 +206,7 @@ func sendResponse(conn net.Conn, response shared.BetResponse) error {
 func (s *Server) handleAllBetsSentMessage() {
 	s.receivedAgencies++
 	if s.receivedAgencies == s.totalAgencies {
+		log.Printf("action: sorteo | result: success")
 		s.IdentifyWinners()
 		s.receivedAgencies = 0
 	}
