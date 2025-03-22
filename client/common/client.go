@@ -278,10 +278,8 @@ func (c *Client) SendResultsQuery() error {
 			)
 			return nil
 		case shared.ResultUnavailableType:
-			log.Infof("action: consulta_ganadores | result: fail | reason: not_ready | client_id: %v",
-				c.config.ID,
-			)
-			time.Sleep(time.Second * 1)
+
+			time.Sleep(time.Millisecond * 100)
 		default:
 			log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: unknown response type %v",
 				c.config.ID,
