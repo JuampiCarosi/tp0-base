@@ -250,6 +250,10 @@ func (m *ResultsResponseMessage) Serialize() ([]byte, error) {
 }
 
 func (m *ResultsResponseMessage) Deserialize(data string) error {
+	if data == "" {
+		m.Winners = []string{}
+		return nil
+	}
 	parts := strings.Split(data, ";")
 	m.Winners = parts
 	return nil
