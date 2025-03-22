@@ -34,6 +34,8 @@ services:
     container_name: server
     image: server:latest
     entrypoint: /server
+    environment:
+      - AGENCIES_AMOUNT={{len .}}
     networks:
       - testing_net
     volumes:

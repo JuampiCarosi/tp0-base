@@ -19,6 +19,10 @@ const (
 	BetType MessageType = iota
 	BetResponseType
 	BatchBetType
+	AllBetsSentType
+	ResultsQueryType
+	ResultUnavailableType
+	ResultsResponseType
 )
 
 type Message interface {
@@ -146,7 +150,6 @@ func MessageFromSocket(socket *net.Conn) (*RawMessage, error) {
 		return nil, err
 	}
 	messageLength := binary.BigEndian.Uint32(u8Buffer)
-
 	payload := make([]byte, messageLength)
 	_, err = io.ReadFull(reader, payload)
 	if err != nil {
@@ -158,4 +161,96 @@ func MessageFromSocket(socket *net.Conn) (*RawMessage, error) {
 		Length:  int(messageLength),
 		Payload: string(payload),
 	}, nil
+}
+
+type AllBetsSentMessage struct {
+	Message
+	Agency int
+}
+
+func (m *AllBetsSentMessage) GetMessageType() MessageType {
+	return AllBetsSentType
+}
+
+func (m *AllBetsSentMessage) Serialize() ([]byte, error) {
+	buffer := bytes.NewBuffer([]byte{})
+	binary.Write(buffer, binary.BigEndian, uint32(AllBetsSentType))
+	binary.Write(buffer, binary.BigEndian, uint32(4))
+	binary.Write(buffer, binary.BigEndian, uint32(m.Agency))
+	return buffer.Bytes(), nil
+}
+
+func (m *AllBetsSentMessage) Deserialize(data string) error {
+	agency, err := strconv.Atoi(data)
+	if err != nil {
+		return err
+	}
+	m.Agency = agency
+	return nil
+}
+
+type ResultsQueryMessage struct {
+	Message
+	Agency int
+}
+
+func (m *ResultsQueryMessage) GetMessageType() MessageType {
+	return ResultsQueryType
+}
+
+func (m *ResultsQueryMessage) Serialize() ([]byte, error) {
+	buffer := bytes.NewBuffer([]byte{})
+	binary.Write(buffer, binary.BigEndian, uint32(ResultsQueryType))
+	binary.Write(buffer, binary.BigEndian, uint32(4))
+	binary.Write(buffer, binary.BigEndian, uint32(m.Agency))
+	return buffer.Bytes(), nil
+}
+
+func (m *ResultsQueryMessage) Deserialize(data string) error {
+	agency := binary.BigEndian.Uint32([]byte(data))
+	m.Agency = int(agency)
+	return nil
+}
+
+type ResultUnavailableMessage struct {
+	Message
+}
+
+func (m *ResultUnavailableMessage) GetMessageType() MessageType {
+	return ResultUnavailableType
+}
+
+func (m *ResultUnavailableMessage) Serialize() ([]byte, error) {
+	buffer := bytes.NewBuffer([]byte{})
+	binary.Write(buffer, binary.BigEndian, uint32(ResultUnavailableType))
+	binary.Write(buffer, binary.BigEndian, uint32(0))
+	return buffer.Bytes(), nil
+}
+
+func (m *ResultUnavailableMessage) Deserialize(data string) error {
+	return nil
+}
+
+type ResultsResponseMessage struct {
+	Message
+	Winners []string
+}
+
+func (m *ResultsResponseMessage) GetMessageType() MessageType {
+	return ResultsResponseType
+}
+
+func (m *ResultsResponseMessage) Serialize() ([]byte, error) {
+	payload := strings.Join(m.Winners, ";")
+	buffer := bytes.NewBuffer([]byte{})
+	binary.Write(buffer, binary.BigEndian, uint32(ResultsResponseType))
+	binary.Write(buffer, binary.BigEndian, uint32(len(payload)))
+	buffer.Write([]byte(payload))
+	return buffer.Bytes(), nil
+}
+
+func (m *ResultsResponseMessage) Deserialize(data string) error {
+	parts := strings.Split(data, ";")
+	m.Winners = parts
+	return nil
 }

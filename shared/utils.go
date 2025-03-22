@@ -1,6 +1,8 @@
 package shared
 
-import "net"
+import (
+	"net"
+)
 
 func WriteSafe(conn net.Conn, message []byte) error {
 	written, err := conn.Write(message)

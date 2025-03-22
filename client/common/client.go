@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/bets"
@@ -91,27 +92,154 @@ func (c *Client) SendBatches() error {
 			)
 			continue
 		}
+		err = c.SendBatch(batch)
+		if err != nil {
+			log.Errorf("action: send_batch | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			continue
+		}
+		time.Sleep(c.config.LoopPeriod)
 
+	}
+	time.Sleep(c.config.LoopPeriod)
+
+	allBetsSentMessage := shared.AllBetsSentMessage{}
+	messageBytes, err := allBetsSentMessage.Serialize()
+	if err != nil {
+		log.Errorf("action: serialize_finish_message | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return err
+	}
+	err = c.createClientSocket()
+	if err != nil {
+		log.Errorf("action: create_client_socket | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return err
+	}
+	defer c.conn.Close()
+	err = shared.WriteSafe(c.conn, messageBytes)
+	if err != nil {
+		log.Errorf("action: write_finish_message | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return err
+	}
+
+	log.Infof("action: batches_finished | result: success | client_id: %v", c.config.ID)
+	return nil
+}
+
+func (c *Client) SendBatch(batch [][]string) error {
+
+	err := c.createClientSocket()
+	if err != nil {
+		log.Errorf("action: create_client_socket | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return err
+	}
+	defer c.conn.Close()
+
+	batchMessage := shared.BatchBetMessage{
+		ReceivedBets: batch,
+	}
+	messageBytes, err := batchMessage.Serialize()
+	if err != nil {
+		log.Errorf("action: serialize_message | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return err
+	}
+	err = shared.WriteSafe(c.conn, messageBytes)
+	if err != nil {
+		log.Errorf("action: write_message | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return err
+	}
+
+	response, err := shared.MessageFromSocket(&c.conn)
+
+	if err != nil {
+		log.Errorf("action: batch_sent | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return err
+	}
+
+	if response.Type != shared.BetResponseType {
+		log.Errorf("action: batch_sent | result: fail | client_id: %v | error: unknown response type %v",
+			c.config.ID,
+			response.Type,
+		)
+		return errors.New("unknown response type")
+	}
+
+	var responseMessage shared.BetResponse
+	err = responseMessage.Deserialize(response.Payload)
+	if err != nil {
+		log.Errorf("action: batch_sent | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return err
+	}
+
+	if responseMessage {
+		log.Infof("action: batch_sent | result: success | client_id: %v",
+			c.config.ID,
+		)
+	} else {
+		log.Infof("action: batch_sent | result: fail | client_id: %v",
+			c.config.ID,
+		)
+	}
+	return nil
+}
+
+func (c *Client) SendResultsQuery() error {
+	agency, err := strconv.Atoi(c.config.ID)
+	if err != nil {
+		log.Errorf("action: send_results_query | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return err
+	}
+
+	resultsQueryMessage := shared.ResultsQueryMessage{
+		Agency: agency,
+	}
+	messageBytes, err := resultsQueryMessage.Serialize()
+	if err != nil {
+		log.Errorf("action: serialize_message | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return err
+	}
+
+	for i := 10; i > 0; i-- {
 		err = c.createClientSocket()
 		if err != nil {
 			log.Errorf("action: create_client_socket | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
-			continue
-		}
-
-		batchMessage := shared.BatchBetMessage{
-			ReceivedBets: batch,
-		}
-		messageBytes, err := batchMessage.Serialize()
-		if err != nil {
-			log.Errorf("action: serialize_message | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
 			return err
 		}
+		defer c.conn.Close()
 		err = shared.WriteSafe(c.conn, messageBytes)
 		if err != nil {
 			log.Errorf("action: write_message | result: fail | client_id: %v | error: %v",
@@ -122,50 +250,44 @@ func (c *Client) SendBatches() error {
 		}
 
 		response, err := shared.MessageFromSocket(&c.conn)
-
 		if err != nil {
-			log.Errorf("action: batch_sent | result: fail | client_id: %v | error: %v",
+			log.Errorf("action: send_results_query | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
 			return err
 		}
 
-		if response.Type != shared.BetResponseType {
-			log.Errorf("action: batch_sent | result: fail | client_id: %v | error: unknown response type %v",
+		switch response.Type {
+		case shared.ResultsResponseType:
+			var resultsResponseMessage shared.ResultsResponseMessage
+			err = resultsResponseMessage.Deserialize(response.Payload)
+			if err != nil {
+				log.Errorf("action: send_results_query | result: fail | client_id: %v | error: %v",
+					c.config.ID,
+					err,
+				)
+				return err
+			}
+			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v",
+				len(resultsResponseMessage.Winners),
+			)
+			return nil
+		case shared.ResultUnavailableType:
+			log.Infof("action: consulta_ganadores | result: not_ready | client_id: %v",
+				c.config.ID,
+			)
+			time.Sleep(time.Second * 1)
+		default:
+			log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: unknown response type %v",
 				c.config.ID,
 				response.Type,
 			)
 			return errors.New("unknown response type")
 		}
-
-		var responseMessage shared.BetResponse
-		err = responseMessage.Deserialize(response.Payload)
-		if err != nil {
-			log.Errorf("action: batch_sent | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return err
-		}
-
-		if responseMessage {
-			log.Infof("action: batch_sent | result: success | client_id: %v",
-				c.config.ID,
-			)
-		} else {
-			log.Infof("action: batch_sent | result: fail | client_id: %v",
-				c.config.ID,
-			)
-		}
-
-		time.Sleep(c.config.LoopPeriod)
-
 	}
-	log.Infof("action: batches_finished | result: success | client_id: %v", c.config.ID)
 	return nil
 }
-
 func (c *Client) LoadAgencyBatch(reader *csv.Reader) ([][]string, error) {
 
 	var loadedBets [][]string

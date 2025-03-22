@@ -13,9 +13,10 @@ import (
 )
 
 type Config struct {
-	Port         int
-	Ip           string
-	LoggingLevel string
+	Port           int
+	Ip             string
+	LoggingLevel   string
+	AgenciesAmount int
 }
 
 var log = logging.MustGetLogger("log")
@@ -25,7 +26,6 @@ func InitConfig() (*Config, error) {
 
 	// Configure viper to read env variables with the CLI_ prefix
 	v.AutomaticEnv()
-	v.SetEnvPrefix("cli")
 	// Use a replacer to replace env variables underscores with points. This let us
 	// use nested configurations in the config file and at the same time define
 	// env variables for the nested configurations
@@ -35,6 +35,7 @@ func InitConfig() (*Config, error) {
 	v.BindEnv("default.server_port", "SERVER_PORT")
 	v.BindEnv("default.server_ip", "SERVER_IP")
 	v.BindEnv("default.logging_level", "LOGGING_LEVEL")
+	v.BindEnv("agencies_amount")
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
 	// can be loaded from the environment variables so we shouldn't
@@ -45,9 +46,10 @@ func InitConfig() (*Config, error) {
 	}
 
 	config := &Config{
-		Port:         v.GetInt("default.server_port"),
-		Ip:           v.GetString("default.server_ip"),
-		LoggingLevel: v.GetString("default.logging_level"),
+		Port:           v.GetInt("default.server_port"),
+		Ip:             v.GetString("default.server_ip"),
+		LoggingLevel:   v.GetString("default.logging_level"),
+		AgenciesAmount: v.GetInt("agencies_amount"),
 	}
 
 	if config.Port == 0 {
@@ -86,18 +88,18 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(config *Config) {
-	log.Infof("action: config | result: success | port: %v | listen_backlog: os_default | logging_level: %s",
+	log.Infof("action: config | result: success | port: %v | listen_backlog: os_default | logging_level: %s | agencies_amount: %v",
 		config.Port,
 		config.LoggingLevel,
+		config.AgenciesAmount,
 	)
 }
 
 func gracefulShutdown(s *common.Server) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM)
-	receivedSignal := <-quit
+	<-quit
 	s.Shutdown()
-	log.Infof("action: graceful_shutdown | result: success | signal: %v", receivedSignal)
 	os.Exit(0)
 }
 
@@ -115,7 +117,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	server, err := common.NewServer(fmt.Sprintf("%s:%d", config.Ip, config.Port))
+	server, err := common.NewServer(fmt.Sprintf("%s:%d", config.Ip, config.Port), config.AgenciesAmount)
 	if err != nil {
 		log.Errorf("error initializing server: %v", err)
 		os.Exit(1)

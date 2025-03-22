@@ -5,20 +5,26 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/bets"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/shared"
 )
 
 type Server struct {
-	serverSocket net.Listener
-	running      bool
-	clientConn   net.Conn
+	serverSocket     net.Listener
+	running          bool
+	clientConn       net.Conn
+	totalAgencies    int
+	receivedAgencies int
+	winners          map[int][]string
 }
 
-func NewServer(address string) (*Server, error) {
+func NewServer(address string, agenciesAmount int) (*Server, error) {
 	server := &Server{
-		running: true,
+		running:          true,
+		totalAgencies:    agenciesAmount,
+		receivedAgencies: 0,
 	}
 
 	listener, err := net.Listen("tcp", address)
@@ -35,7 +41,7 @@ func (s *Server) Run() {
 		clientConn, err := s.acceptNewConnection()
 		if err != nil {
 			log.Printf("action: accept_connections | result: failed | error: %v", err)
-			continue
+			return
 		}
 		s.clientConn = clientConn
 		s.handleClientConnection()
@@ -60,6 +66,7 @@ func (s *Server) acceptNewConnection() (net.Conn, error) {
 	log.Printf("action: accept_connections | result: in_progress")
 	conn, err := s.serverSocket.Accept()
 	if err != nil {
+
 		return nil, err
 	}
 	log.Printf("action: accept_connections | result: success | ip: %v", conn.RemoteAddr().String())
@@ -67,6 +74,7 @@ func (s *Server) acceptNewConnection() (net.Conn, error) {
 }
 
 func (s *Server) handleClientConnection() {
+	defer time.Sleep(2 * time.Second)
 	defer s.clientConn.Close()
 	errorResponse := shared.BetResponse(false)
 	errorResponseSerialized, err := errorResponse.Serialize()
@@ -88,6 +96,10 @@ func (s *Server) handleClientConnection() {
 		s.handleBetMessage(messageType)
 	case shared.BatchBetType:
 		s.handleBatchBetMessage(messageType)
+	case shared.AllBetsSentType:
+		s.handleAllBetsSentMessage()
+	case shared.ResultsQueryType:
+		s.handleResultsQueryMessage(messageType)
 	default:
 		log.Printf("action: handle_client_connection | result: fail | error: unknown message type %v", messageType.Type)
 		s.clientConn.Write(errorResponseSerialized)
@@ -189,4 +201,52 @@ func (s *Server) handleBatchBetMessage(message *shared.RawMessage) {
 func sendResponse(conn net.Conn, response shared.BetResponse) error {
 	responseSerialized, _ := response.Serialize()
 	return shared.WriteSafe(conn, responseSerialized)
+}
+
+func (s *Server) handleAllBetsSentMessage() {
+	s.receivedAgencies++
+	if s.receivedAgencies == s.totalAgencies {
+		s.IdentifyWinners()
+		s.receivedAgencies = 0
+	}
+}
+
+func (s *Server) IdentifyWinners() {
+	loadedBets, err := bets.LoadBets()
+	if err != nil {
+		log.Printf("action: identificar_ganadores | result: fail | error: %v", err)
+		return
+	}
+
+	winners := make(map[int][]string)
+	for _, bet := range loadedBets {
+		if bets.HasWon(bet) {
+			winners[bet.Agency] = append(winners[bet.Agency], bet.Document)
+		}
+	}
+
+	s.winners = winners
+
+}
+
+func (s *Server) handleResultsQueryMessage(message *shared.RawMessage) {
+	var resultsQueryMessage shared.ResultsQueryMessage
+	err := resultsQueryMessage.Deserialize(message.Payload)
+	if err != nil {
+		log.Printf("action: handle_results_query_message | result: fail | error: %v", err)
+		return
+	}
+	if s.winners == nil {
+		message := shared.ResultUnavailableMessage{}
+		messageSerialized, _ := message.Serialize()
+		err := shared.WriteSafe(s.clientConn, messageSerialized)
+		if err != nil {
+			log.Printf("action: handle_results_query_message | result: fail | error: %v", err)
+		}
+		return
+	}
+	winners := s.winners[resultsQueryMessage.Agency]
+	response := shared.ResultsResponseMessage{Winners: winners}
+	responseSerialized, _ := response.Serialize()
+	shared.WriteSafe(s.clientConn, responseSerialized)
 }
