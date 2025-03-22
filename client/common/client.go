@@ -278,7 +278,7 @@ func (c *Client) SendResultsQuery() error {
 			)
 			return nil
 		case shared.ResultUnavailableType:
-			log.Infof("action: consulta_ganadores | result: not_ready | client_id: %v",
+			log.Infof("action: consulta_ganadores | result: failed | reason: not_ready | client_id: %v",
 				c.config.ID,
 			)
 			time.Sleep(time.Second * 1)
