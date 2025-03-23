@@ -46,17 +46,11 @@ La serialización para el mensaje de respuesta se encarga de serializar el boole
 
 ### Ejercicio N°6:
 
-Modificar los clientes para que envíen varias apuestas a la vez (modalidad conocida como procesamiento por _chunks_ o _batchs_).
-Los _batchs_ permiten que el cliente registre varias apuestas en una misma consulta, acortando tiempos de transmisión y procesamiento.
+Para este ejercicio se creo un mensaje de tipo `BatchBetMessage` que contiene un pseudo csv de apuestas, siguiendo el mismo formato que el del ejercicio 5, solo que cada apuesta esta separada por un salto de linea de la siguiente.
 
-La información de cada agencia será simulada por la ingesta de su archivo numerado correspondiente, provisto por la cátedra dentro de `.data/datasets.zip`.
-Los archivos deberán ser inyectados en los containers correspondientes y persistido por fuera de la imagen (hint: `docker volumes`), manteniendo la convencion de que el cliente N utilizara el archivo de apuestas `.data/agency-{N}.csv` .
+Cada Batch de apuestas se va cargando en memoria a medida que se necesita enviar un batch al servidor, para esto se utiliza un reader de csv que se va recorriendo en el metodo `LoadAgencyBatch` de la estructura `Client`.
 
-En el servidor, si todas las apuestas del _batch_ fueron procesadas correctamente, imprimir por log: `action: apuesta_recibida | result: success | cantidad: ${CANTIDAD_DE_APUESTAS}`. En caso de detectar un error con alguna de las apuestas, debe responder con un código de error a elección e imprimir: `action: apuesta_recibida | result: fail | cantidad: ${CANTIDAD_DE_APUESTAS}`.
-
-La cantidad máxima de apuestas dentro de cada _batch_ debe ser configurable desde config.yaml. Respetar la clave `batch: maxAmount`, pero modificar el valor por defecto de modo tal que los paquetes no excedan los 8kB.
-
-Por su parte, el servidor deberá responder con éxito solamente si todas las apuestas del _batch_ fueron procesadas correctamente.
+Para el valor por defecto de la cantidad de apuestas por batch se asumio que cada record del csv contiene como maximo 70 caracteres (ya que es una cantidad razonable teniendo en cuenta el largo del nombre, puesto a que ninguno de los ejemplos supera esta cifra). De esta manera para cumplir con los 8Kb por defecto se setea el valor de `batch.maxAmount` en 105.
 
 ### Ejercicio N°7:
 
