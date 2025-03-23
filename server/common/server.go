@@ -15,7 +15,7 @@ type Server struct {
 	running          bool
 	clientConn       net.Conn
 	totalAgencies    int
-	receivedAgencies int
+	receivedAgencies map[int]bool
 	winners          map[int][]string
 }
 
@@ -23,7 +23,7 @@ func NewServer(address string, agenciesAmount int) (*Server, error) {
 	server := &Server{
 		running:          true,
 		totalAgencies:    agenciesAmount,
-		receivedAgencies: 0,
+		receivedAgencies: make(map[int]bool),
 	}
 
 	listener, err := net.Listen("tcp", address)
@@ -95,7 +95,7 @@ func (s *Server) handleClientConnection() {
 	case shared.BatchBetType:
 		s.handleBatchBetMessage(messageType)
 	case shared.AllBetsSentType:
-		s.handleAllBetsSentMessage()
+		s.handleAllBetsSentMessage(messageType)
 	case shared.ResultsQueryType:
 		s.handleResultsQueryMessage(messageType)
 	default:
@@ -186,12 +186,18 @@ func sendResponse(conn net.Conn, response shared.BetResponse) error {
 	return shared.WriteSafe(conn, responseSerialized)
 }
 
-func (s *Server) handleAllBetsSentMessage() {
-	s.receivedAgencies++
-	if s.receivedAgencies == s.totalAgencies {
+func (s *Server) handleAllBetsSentMessage(message *shared.RawMessage) {
+	var allBetsSentMessage shared.AllBetsSentMessage
+	err := allBetsSentMessage.Deserialize(message.Payload)
+	if err != nil {
+		log.Printf("action: handle_all_bets_sent_message | result: fail | error: %v", err)
+		return
+	}
+	s.receivedAgencies[allBetsSentMessage.Agency] = true
+	if len(s.receivedAgencies) == s.totalAgencies {
 		log.Printf("action: sorteo | result: success")
 		s.IdentifyWinners()
-		s.receivedAgencies = 0
+		s.receivedAgencies = make(map[int]bool)
 	}
 }
 
