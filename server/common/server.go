@@ -79,7 +79,7 @@ func (s *Server) handleClientConnection() {
 	messageType, err := shared.MessageFromSocket(&s.clientConn)
 	if err != nil {
 		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
-		s.clientConn.Write(errorResponseSerialized)
+		shared.WriteSafe(s.clientConn, errorResponseSerialized)
 		return
 	}
 
@@ -90,26 +90,19 @@ func (s *Server) handleClientConnection() {
 		s.handleBatchBetMessage(messageType)
 	default:
 		log.Printf("action: handle_client_connection | result: fail | error: unknown message type %v", messageType.Type)
-		s.clientConn.Write(errorResponseSerialized)
+		shared.WriteSafe(s.clientConn, errorResponseSerialized)
 		return
 	}
 
 }
 
 func (s *Server) handleBetMessage(message *shared.RawMessage) {
-	errorResponse := shared.BetResponse(false)
-	errorResponseSerialized, err := errorResponse.Serialize()
-	if err != nil {
-		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
-		s.clientConn.Write(errorResponseSerialized)
-		return
-	}
 
 	var betMessage shared.BetMessage
-	err = betMessage.Deserialize(message.Payload)
+	err := betMessage.Deserialize(message.Payload)
 	if err != nil {
 		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
-		s.clientConn.Write(errorResponseSerialized)
+		sendResponse(s.clientConn, shared.BetResponse(false))
 		return
 	}
 	bet := betMessage.ReceivedBet
@@ -117,20 +110,18 @@ func (s *Server) handleBetMessage(message *shared.RawMessage) {
 
 	if err != nil {
 		log.Printf("action: apuesta_almacenada | result: fail | error: %v", err)
-		s.clientConn.Write(errorResponseSerialized)
+		sendResponse(s.clientConn, shared.BetResponse(false))
 		return
 	}
 
-	successResponse := shared.BetResponse(true)
-	successResponseSerialized, err := successResponse.Serialize()
 	if err != nil {
 		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
-		s.clientConn.Write(errorResponseSerialized)
+		sendResponse(s.clientConn, shared.BetResponse(false))
 		return
 	}
 
 	log.Printf("action: apuesta_almacenada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
-	s.clientConn.Write(successResponseSerialized)
+	sendResponse(s.clientConn, shared.BetResponse(true))
 }
 
 func (s *Server) handleBatchBetMessage(message *shared.RawMessage) {
