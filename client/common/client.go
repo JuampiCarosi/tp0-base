@@ -88,8 +88,7 @@ func (c *Client) SendBatches() error {
 			if len(batch) == 0 {
 				break
 			}
-		}
-		if err != nil {
+		} else if err != nil {
 			log.Errorf("action: load_agency_batch | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
@@ -104,10 +103,8 @@ func (c *Client) SendBatches() error {
 			)
 			continue
 		}
-		time.Sleep(c.config.LoopPeriod)
 
 	}
-	time.Sleep(c.config.LoopPeriod)
 
 	allBetsSentMessage := shared.AllBetsSentMessage{}
 	messageBytes, err := allBetsSentMessage.Serialize()

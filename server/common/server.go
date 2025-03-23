@@ -5,7 +5,6 @@ import (
 	"log"
 	"net"
 	"strconv"
-	"time"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/bets"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/shared"
@@ -74,7 +73,6 @@ func (s *Server) acceptNewConnection() (net.Conn, error) {
 }
 
 func (s *Server) handleClientConnection() {
-	defer time.Sleep(2 * time.Second)
 	defer s.clientConn.Close()
 	errorResponse := shared.BetResponse(false)
 	errorResponseSerialized, err := errorResponse.Serialize()
