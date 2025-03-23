@@ -289,8 +289,7 @@ func (c *Client) LoadAgencyBatch(reader *csv.Reader) ([][]string, error) {
 		record, err := reader.Read()
 		if err == io.EOF {
 			return loadedBets, err
-		}
-		if err != nil {
+		} else if err != nil {
 			log.Errorf("action: load_agency_bets | result: fail | client_id: %v | error: %v",
 				c.config.ID, err)
 			return nil, err

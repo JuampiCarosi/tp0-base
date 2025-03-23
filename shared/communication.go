@@ -26,7 +26,6 @@ const (
 )
 
 type Message interface {
-	GetMessageType() MessageType
 	Serialize() ([]byte, error)
 	Deserialize(data []byte) error
 }
@@ -34,10 +33,6 @@ type Message interface {
 type BetMessage struct {
 	Message
 	ReceivedBet bets.Bet
-}
-
-func (m *BetMessage) GetMessageType() MessageType {
-	return BetType
 }
 
 func (m *BetMessage) Serialize() ([]byte, error) {
@@ -98,10 +93,6 @@ func (m *BetResponse) Deserialize(data string) error {
 type BatchBetMessage struct {
 	Message
 	ReceivedBets [][]string
-}
-
-func (m *BatchBetMessage) GetMessageType() MessageType {
-	return BatchBetType
 }
 
 func (m *BatchBetMessage) Serialize() ([]byte, error) {

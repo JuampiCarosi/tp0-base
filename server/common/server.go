@@ -100,7 +100,7 @@ func (s *Server) handleClientConnection(clientConn net.Conn) {
 	messageType, err := shared.MessageFromSocket(&clientConn)
 	if err != nil {
 		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
-		clientConn.Write(errorResponseSerialized)
+		shared.WriteSafe(clientConn, errorResponseSerialized)
 		return
 	}
 
@@ -115,7 +115,7 @@ func (s *Server) handleClientConnection(clientConn net.Conn) {
 		s.handleResultsQueryMessage(messageType, clientConn)
 	default:
 		log.Printf("action: handle_client_connection | result: fail | error: unknown message type %v", messageType.Type)
-		clientConn.Write(errorResponseSerialized)
+		shared.WriteSafe(clientConn, errorResponseSerialized)
 		return
 	}
 
@@ -206,7 +206,7 @@ func sendResponse(conn net.Conn, response shared.BetResponse) error {
 }
 
 func (s *Server) handleAllBetsSentMessage(message *shared.RawMessage) {
-	allBetsSentMessage := shared.AllBetsSentMessage{}
+	var allBetsSentMessage shared.AllBetsSentMessage
 	err := allBetsSentMessage.Deserialize(message.Payload)
 	if err != nil {
 		log.Printf("action: handle_all_bets_sent_message | result: fail | error: %v", err)
