@@ -8,7 +8,7 @@ Se creó el archivo `generar-compose.sh` que genera el archivo `docker-compose.y
 
 ### Ejercicio N°2:
 
-Modificar el cliente y el servidor para lograr que realizar cambios en el archivo de configuración no requiera reconstruír las imágenes de Docker para que los mismos sean efectivos. La configuración a través del archivo correspondiente (`config.ini` y `config.yaml`, dependiendo de la aplicación) debe ser inyectada en el container y persistida por fuera de la imagen (hint: `docker volumes`).
+Se utilizó un bind mount para montar el archivo de configuración del cliente y el servidor en el container. En ambos casos se utilizó el flag `--exclude` de la beta `# syntax=docker/dockerfile:1.7-labs` para que no se copiaran los archivos de configuración a la imagen.
 
 ### Ejercicio N°3:
 
