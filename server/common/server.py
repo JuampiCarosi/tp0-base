@@ -34,6 +34,7 @@ class Server:
             self.current_connection.close()
             logging.info(f"action: connection closed | result: success | connection: {self.current_connection.getsockname()}")
         self._server_socket.close()
+        logging.info(f"action: socket closed | result: success")
 
     def __handle_client_connection(self, client_sock):
         """
