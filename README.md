@@ -22,31 +22,27 @@ El cliente para que termine de forma _graceful_ crea una go routine que escucha 
 
 ## Parte 2: Repaso de Comunicaciones
 
-Las secciones de repaso del trabajo práctico plantean un caso de uso denominado **Lotería Nacional**. Para la resolución de las mismas deberá utilizarse como base el código fuente provisto en la primera parte, con las modificaciones agregadas en el ejercicio 4.
+Para esta seccion se reescribio el codigo del servidor en go como desafio personal para practicar el lenguaje y poder aprovechar sus estructuras de concurrencia.
 
 ### Ejercicio N°5:
 
-Modificar la lógica de negocio tanto de los clientes como del servidor para nuestro nuevo caso de uso.
+#### Protocolo de comunicación:
 
-#### Cliente
+Se define un protocolo de comunicación para el envío y la recepción de los paquetes, el mismo es implementado en el archivo `shared/communication.go`. Para los mensajes se creo una interfaz `Message` que define como se serializa y deserializa el mensaje.
 
-Emulará a una _agencia de quiniela_ que participa del proyecto. Existen 5 agencias. Deberán recibir como variables de entorno los campos que representan la apuesta de una persona: nombre, apellido, DNI, nacimiento, numero apostado (en adelante 'número'). Ej.: `NOMBRE=Santiago Lionel`, `APELLIDO=Lorca`, `DOCUMENTO=30904465`, `NACIMIENTO=1999-03-17` y `NUMERO=7574` respectivamente.
+El protocolo consiste en un header fijo de 8 bytes que los primeros 4 bytes indican el tipo de mensaje y los ultimos 4 bytes indican el largo del payload. El resto del mensaje es el payload.
 
-Los campos deben enviarse al servidor para dejar registro de la apuesta. Al recibir la confirmación del servidor se debe imprimir por log: `action: apuesta_enviada | result: success | dni: ${DNI} | numero: ${NUMERO}`.
+Para realizar la tarea de recepcion de mensaje se creo una funcion `MessageFromSocket` que recibe un socket y devuelve un mensaje con el tipo, el largo del payload y el payload. Por lo que la funcion `Deserialize` de la interfaz `Message` simplemente recibe el payload y lo deserializa segun el tipo de mensaje.
 
-#### Servidor
+De esta forma como se serializa y deserializa cada mensaje en especifico depende de la implementacion de la interfaz `Message` para cada tipo de mensaje.
 
-Emulará a la _central de Lotería Nacional_. Deberá recibir los campos de la cada apuesta desde los clientes y almacenar la información mediante la función `store_bet(...)` para control futuro de ganadores. La función `store_bet(...)` es provista por la cátedra y no podrá ser modificada por el alumno.
-Al persistir se debe imprimir por log: `action: apuesta_almacenada | result: success | dni: ${DNI} | numero: ${NUMERO}`.
+#### Serialización para BetMessage:
 
-#### Comunicación:
+La serialización para el mensaje de apuesta se encarga de serializar los datos de la apuesta en un string separado por `;`, con el formato `agencia;nombre;apellido;dni;nacimiento;numero`
 
-Se deberá implementar un módulo de comunicación entre el cliente y el servidor donde se maneje el envío y la recepción de los paquetes, el cual se espera que contemple:
+#### Serialización para BetResponse:
 
-- Definición de un protocolo para el envío de los mensajes.
-- Serialización de los datos.
-- Correcta separación de responsabilidades entre modelo de dominio y capa de comunicación.
-- Correcto empleo de sockets, incluyendo manejo de errores y evitando los fenómenos conocidos como [_short read y short write_](https://cs61.seas.harvard.edu/site/2018/FileDescriptors/).
+La serialización para el mensaje de respuesta se encarga de serializar el booleano en un string "SUCCESS" o "ERROR" .
 
 ### Ejercicio N°6:
 
