@@ -78,13 +78,13 @@ func (s *Server) handleClientConnection() {
 	messageType, err := shared.MessageFromSocket(&s.clientConn)
 	if err != nil {
 		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
-		s.clientConn.Write(errorResponseSerialized)
+		shared.WriteSafe(s.clientConn, errorResponseSerialized)
 		return
 	}
 
 	if messageType.Type != shared.BetType {
 		log.Printf("action: handle_client_connection | result: fail | error: unknown message type %v", messageType.Type)
-		s.clientConn.Write(errorResponseSerialized)
+		shared.WriteSafe(s.clientConn, errorResponseSerialized)
 		return
 	}
 
@@ -92,7 +92,7 @@ func (s *Server) handleClientConnection() {
 	err = betMessage.Deserialize(messageType.Payload)
 	if err != nil {
 		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
-		s.clientConn.Write(errorResponseSerialized)
+		shared.WriteSafe(s.clientConn, errorResponseSerialized)
 		return
 	}
 	bet := betMessage.ReceivedBet
@@ -100,7 +100,7 @@ func (s *Server) handleClientConnection() {
 
 	if err != nil {
 		log.Printf("action: apuesta_almacenada | result: fail | error: %v", err)
-		s.clientConn.Write(errorResponseSerialized)
+		shared.WriteSafe(s.clientConn, errorResponseSerialized)
 		return
 	}
 
@@ -108,10 +108,10 @@ func (s *Server) handleClientConnection() {
 	successResponseSerialized, err := successResponse.Serialize()
 	if err != nil {
 		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
-		s.clientConn.Write(errorResponseSerialized)
+		shared.WriteSafe(s.clientConn, errorResponseSerialized)
 		return
 	}
 
 	log.Printf("action: apuesta_almacenada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
-	s.clientConn.Write(successResponseSerialized)
+	shared.WriteSafe(s.clientConn, successResponseSerialized)
 }

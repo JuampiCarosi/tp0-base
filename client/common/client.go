@@ -86,7 +86,7 @@ func (c *Client) StartClientLoop() {
 			return
 		}
 		// log.Debugf("messageBytes: %v, length: %v, binary: %b, string: %v", messageBytes, len(messageBytes), messageBytes, string(messageBytes))
-		c.conn.Write(messageBytes)
+		shared.WriteSafe(c.conn, messageBytes)
 
 		response, err := shared.MessageFromSocket(&c.conn)
 
