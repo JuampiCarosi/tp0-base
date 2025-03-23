@@ -143,4 +143,6 @@ func main() {
 	go gracefulShutdown(client)
 
 	client.SendBatches()
+	time.Sleep(100 * time.Millisecond)
+	defer client.Cleanup(syscall.SIGTERM)
 }

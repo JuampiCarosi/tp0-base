@@ -161,8 +161,6 @@ func (c *Client) SendBatches() error {
 
 		c.conn.Close()
 
-		// time.Sleep(c.config.LoopPeriod)
-
 	}
 	log.Infof("action: batches_finished | result: success | client_id: %v", c.config.ID)
 	return nil
