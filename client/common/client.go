@@ -106,7 +106,18 @@ func (c *Client) SendBatches() error {
 
 	}
 
-	allBetsSentMessage := shared.AllBetsSentMessage{}
+	agency, err := strconv.Atoi(c.config.ID)
+	if err != nil {
+		log.Errorf("action: send_all_bets_sent_message | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return err
+	}
+
+	allBetsSentMessage := shared.AllBetsSentMessage{
+		Agency: agency,
+	}
 	messageBytes, err := allBetsSentMessage.Serialize()
 	if err != nil {
 		log.Errorf("action: serialize_finish_message | result: fail | client_id: %v | error: %v",
