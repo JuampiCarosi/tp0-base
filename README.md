@@ -54,16 +54,9 @@ Para el valor por defecto de la cantidad de apuestas por batch se asumio que cad
 
 ### Ejercicio N°7:
 
-Modificar los clientes para que notifiquen al servidor al finalizar con el envío de todas las apuestas y así proceder con el sorteo.
-Inmediatamente después de la notificacion, los clientes consultarán la lista de ganadores del sorteo correspondientes a su agencia.
-Una vez el cliente obtenga los resultados, deberá imprimir por log: `action: consulta_ganadores | result: success | cant_ganadores: ${CANT}`.
+Para este ejercicio se creo un map en el servidor que guarda las agencias que han enviado todos sus datos. Cuando el servidor recibe el mensaje de que todas las agencias han enviado sus datos, se procede procesar los ganadores del sorteo. Una vez que se tienen todos los ganadores recien ahi los clientes pueden consultar los ganadores del sorteo. Si se realiza una consulta antes de que el servidor tenga todos los ganadores, el servidor responde con un mensaje que no estan los ganadores todavia.
 
-El servidor deberá esperar la notificación de las 5 agencias para considerar que se realizó el sorteo e imprimir por log: `action: sorteo | result: success`.
-Luego de este evento, podrá verificar cada apuesta con las funciones `load_bets(...)` y `has_won(...)` y retornar los DNI de los ganadores de la agencia en cuestión. Antes del sorteo no se podrán responder consultas por la lista de ganadores con información parcial.
-
-Las funciones `load_bets(...)` y `has_won(...)` son provistas por la cátedra y no podrán ser modificadas por el alumno.
-
-No es correcto realizar un broadcast de todos los ganadores hacia todas las agencias, se espera que se informen los DNIs ganadores que correspondan a cada una de ellas.
+Los clientes tienen 10 intentos para consultar los ganadores, esperando 100ms entre cada intento.
 
 ## Parte 3: Repaso de Concurrencia
 
