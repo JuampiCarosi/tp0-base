@@ -48,9 +48,6 @@ func (m *BetMessage) Serialize() ([]byte, error) {
 func (m *BetMessage) Deserialize(data string) error {
 	parts := strings.Split(data, ";")
 
-	println(data)
-	println(parts)
-
 	number, err := strconv.Atoi(parts[5])
 	if err != nil {
 		return err
@@ -114,8 +111,7 @@ func MessageFromSocket(socket *net.Conn) (*RawMessage, error) {
 	messageLength := u8Buffer[0]
 
 	payload := make([]byte, messageLength)
-	read, err := io.ReadFull(reader, payload)
-	println(read, messageLength)
+	_, err = io.ReadFull(reader, payload)
 	if err != nil {
 		return nil, err
 	}
