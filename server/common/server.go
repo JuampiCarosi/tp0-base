@@ -114,12 +114,6 @@ func (s *Server) handleBetMessage(message *shared.RawMessage) {
 		return
 	}
 
-	if err != nil {
-		log.Printf("action: handle_client_connection | result: fail | error: %v", err)
-		sendResponse(s.clientConn, shared.BetResponse(false))
-		return
-	}
-
 	log.Printf("action: apuesta_almacenada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
 	sendResponse(s.clientConn, shared.BetResponse(true))
 }
