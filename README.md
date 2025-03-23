@@ -16,7 +16,9 @@ Para el `validar-echo-server.sh` se utilizó el comando `docker run` sobre una i
 
 ### Ejercicio N°4:
 
-Modificar servidor y cliente para que ambos sistemas terminen de forma _graceful_ al recibir la signal SIGTERM. Terminar la aplicación de forma _graceful_ implica que todos los _file descriptors_ (entre los que se encuentran archivos, sockets, threads y procesos) deben cerrarse correctamente antes que el thread de la aplicación principal muera. Loguear mensajes en el cierre de cada recurso (hint: Verificar que hace el flag `-t` utilizado en el comando `docker compose down`).
+Se modifico el servidor para que al recibir la signal SIGTERM, cierre la conexion actual y el socket. Ademas de eso setea el atributo `running` en False para que cuando el accept se desbloquee (ya que se cerro el socket) se pueda salir del while y terminar el programa.
+
+El cliente para que termine de forma _graceful_ crea una go routine que escucha la signal SIGTERM, al recibirla el cliente cierra el loop y deja de enviar mensajes, y si habia una conexion con el servidor la cierra.
 
 ## Parte 2: Repaso de Comunicaciones
 
