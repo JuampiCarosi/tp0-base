@@ -45,6 +45,8 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("nacimiento")
 	v.BindEnv("numero")
 	v.BindEnv("batch", "maxAmount")
+
+	v.SetDefault("batch.maxAmount", 105)
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
 	// can be loaded from the environment variables so we shouldn't
@@ -88,7 +90,7 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | nombre: %s | apellido: %s | documento: %s | nacimiento: %v | numero: %v",
+	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | nombre: %s | apellido: %s | documento: %s | nacimiento: %v | numero: %v | batch_max_amount: %v",
 		v.GetString("id"),
 		v.GetString("server.address"),
 		v.GetInt("loop.amount"),
@@ -99,6 +101,7 @@ func PrintConfig(v *viper.Viper) {
 		v.GetString("documento"),
 		v.GetTime("nacimiento"),
 		v.GetInt("numero"),
+		v.GetInt("batch.maxAmount"),
 	)
 }
 
