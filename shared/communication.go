@@ -181,11 +181,8 @@ func (m *AllBetsSentMessage) Serialize() ([]byte, error) {
 }
 
 func (m *AllBetsSentMessage) Deserialize(data string) error {
-	agency, err := strconv.Atoi(data)
-	if err != nil {
-		return err
-	}
-	m.Agency = agency
+	agency := binary.BigEndian.Uint32([]byte(data))
+	m.Agency = int(agency)
 	return nil
 }
 
