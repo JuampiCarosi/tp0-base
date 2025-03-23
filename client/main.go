@@ -145,6 +145,6 @@ func main() {
 	client.SendBatches()
 
 	client.SendResultsQuery()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	defer client.Cleanup(syscall.SIGTERM)
 }
