@@ -64,7 +64,14 @@ En este ejercicio es importante considerar los mecanismos de sincronización a u
 
 ### Ejercicio N°8:
 
-Modificar el servidor para que permita aceptar conexiones y procesar mensajes en paralelo. En caso de que el alumno implemente el servidor en Python utilizando _multithreading_, deberán tenerse en cuenta las [limitaciones propias del lenguaje](https://wiki.python.org/moin/GlobalInterpreterLock).
+Para implementar la concurrencia en primer lugar se convirtio la llamada a `handleClientConnection` en una go routine para que se ejecute en paralelo con el accept del socket. Para esto se tuvieron que hacer modificaciones en el struct server para poder guardar multiples conexiones y poder cerrarlas todas en el metodo `Shutdown`, todo de forma thread safe.
+
+Las principales modificaciones fueron:
+
+- Transformar el campo de conexion a un map de conexiones y agregar un mutex para poder acceder y modificar el map de forma thread safe.
+- Transformar el metodo `Shutdown` para que cierre todas las conexiones del map.
+- Transformar el campo de receivedAgencies a un channel, donde va a haber una go routine esperando a que todas las agencias notifiquen que han enviado sus datos, y una vez que lo hace escribe en el `Server.winners` los ganadores de cada agencia.
+- Crear el campo `Server.betsMutex` para poder manejar la lectura y escritura de los datos de las apuestas ya que estas operaciones no son thread safe. Por mas que `LoadBets` no deberia llamarse a la vez que `SaveBets` u otro `LoadBets`, se opto por igualmente hacerlo thread safe pensando en que en un futuro podrian empezar a recibirse mas apuestas mientras se realiza un sorteo.
 
 ## Condiciones de Entrega
 
