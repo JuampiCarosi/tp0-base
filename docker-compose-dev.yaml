@@ -5,7 +5,7 @@ services:
     image: server:latest
     entrypoint: /server
     environment:
-      - AGENCIES_AMOUNT=3
+      - AGENCIES_AMOUNT=5
     networks:
       - testing_net
     volumes:
@@ -49,6 +49,34 @@ services:
       - ./.data/agency-3.csv:/agency.csv
     environment:
       - CLI_ID=3
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client4:
+    container_name: client4
+    image: client:latest
+    entrypoint: /client
+    volumes:
+      - ./client/config.yaml:/config.yaml
+      - ./.data/agency-4.csv:/agency.csv
+    environment:
+      - CLI_ID=4
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client5:
+    container_name: client5
+    image: client:latest
+    entrypoint: /client
+    volumes:
+      - ./client/config.yaml:/config.yaml
+      - ./.data/agency-5.csv:/agency.csv
+    environment:
+      - CLI_ID=5
     networks:
       - testing_net
     depends_on:
