@@ -34,8 +34,8 @@ func (m *BetMessage) Serialize() ([]byte, error) {
 	payload := []byte(fmt.Sprintf("%v;%v;%v;%v;%v;%v", m.ReceivedBet.Agency, m.ReceivedBet.FirstName, m.ReceivedBet.LastName, m.ReceivedBet.Document, m.ReceivedBet.BirthDate.Format("2006-01-02"), m.ReceivedBet.Number))
 	buffer := bytes.NewBuffer([]byte{})
 
-	binary.Write(buffer, binary.BigEndian, uint8(BetType))
-	binary.Write(buffer, binary.BigEndian, uint8(len(payload)))
+	binary.Write(buffer, binary.BigEndian, uint32(BetType))
+	binary.Write(buffer, binary.BigEndian, uint32(len(payload)))
 	buffer.Write(payload)
 	return buffer.Bytes(), nil
 }
@@ -68,8 +68,8 @@ func (m *BetResponse) Serialize() ([]byte, error) {
 	}
 
 	buffer := bytes.NewBuffer([]byte{})
-	binary.Write(buffer, binary.BigEndian, uint8(BetResponseType))
-	binary.Write(buffer, binary.BigEndian, uint8(len(payload)))
+	binary.Write(buffer, binary.BigEndian, uint32(BetResponseType))
+	binary.Write(buffer, binary.BigEndian, uint32(len(payload)))
 	buffer.Write([]byte(payload))
 
 	return buffer.Bytes(), nil
@@ -93,17 +93,17 @@ type RawMessage struct {
 
 func MessageFromSocket(socket *net.Conn) (*RawMessage, error) {
 	reader := bufio.NewReader(*socket)
-	u8Buffer := make([]byte, 1)
-	_, err := io.ReadFull(reader, u8Buffer)
+	u32Buffer := make([]byte, 4)
+	_, err := io.ReadFull(reader, u32Buffer)
 	if err != nil {
 		return nil, err
 	}
-	messageType := u8Buffer[0]
-	_, err = io.ReadFull(reader, u8Buffer)
+	messageType := binary.BigEndian.Uint32(u32Buffer)
+	_, err = io.ReadFull(reader, u32Buffer)
 	if err != nil {
 		return nil, err
 	}
-	messageLength := u8Buffer[0]
+	messageLength := binary.BigEndian.Uint32(u32Buffer)
 
 	payload := make([]byte, messageLength)
 	_, err = io.ReadFull(reader, payload)
