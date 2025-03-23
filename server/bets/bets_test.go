@@ -37,14 +37,14 @@ func TestStoreBetsAndLoadBetsKeepsFieldsData(t *testing.T) {
 	bet, err := NewBet("1", "first", "last", "10000000", "2000-12-20", 7500)
 	assert.NoError(t, err)
 
-	toStore := []Bet{*bet}
+	toStore := []*Bet{bet}
 	err = StoreBets(toStore)
 	assert.NoError(t, err)
 
 	fromLoad, err := LoadBets()
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(fromLoad))
-	assertEqualBets(t, &toStore[0], fromLoad[0])
+	assertEqualBets(t, toStore[0], fromLoad[0])
 }
 
 func TestStoreBetsAndLoadBetsKeepsRegistryOrder(t *testing.T) {
@@ -56,15 +56,15 @@ func TestStoreBetsAndLoadBetsKeepsRegistryOrder(t *testing.T) {
 	bet2, err := NewBet("1", "first_1", "last_1", "10000001", "2000-12-21", 7501)
 	assert.NoError(t, err)
 
-	toStore := []Bet{*bet1, *bet2}
+	toStore := []*Bet{bet1, bet2}
 	err = StoreBets(toStore)
 	assert.NoError(t, err)
 
 	fromLoad, err := LoadBets()
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(fromLoad))
-	assertEqualBets(t, &toStore[0], fromLoad[0])
-	assertEqualBets(t, &toStore[1], fromLoad[1])
+	assertEqualBets(t, toStore[0], fromLoad[0])
+	assertEqualBets(t, toStore[1], fromLoad[1])
 }
 
 func assertEqualBets(t *testing.T, b1, b2 *Bet) {

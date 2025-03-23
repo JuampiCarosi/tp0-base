@@ -96,7 +96,7 @@ func (s *Server) handleClientConnection() {
 		return
 	}
 	bet := betMessage.ReceivedBet
-	err = bets.StoreBets([]bets.Bet{bet})
+	err = bets.StoreBets([]*bets.Bet{&bet})
 
 	if err != nil {
 		log.Printf("action: apuesta_almacenada | result: fail | error: %v", err)
