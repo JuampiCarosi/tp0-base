@@ -213,7 +213,6 @@ func (s *Server) handleAllBetsSentMessage(message *shared.RawMessage) {
 		return
 	}
 	s.receivedAgencies <- allBetsSentMessage.Agency
-
 }
 
 func (s *Server) identifyWinners() {

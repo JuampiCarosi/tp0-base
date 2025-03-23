@@ -18,7 +18,7 @@ var log = logging.MustGetLogger("log")
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
-	ID            string
+	ID            int
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
@@ -106,7 +106,9 @@ func (c *Client) SendBatches() error {
 
 	}
 
-	allBetsSentMessage := shared.AllBetsSentMessage{}
+	allBetsSentMessage := shared.AllBetsSentMessage{
+		Agency: c.config.ID,
+	}
 	messageBytes, err := allBetsSentMessage.Serialize()
 	if err != nil {
 		log.Errorf("action: serialize_finish_message | result: fail | client_id: %v | error: %v",
@@ -210,17 +212,9 @@ func (c *Client) SendBatch(batch [][]string) error {
 }
 
 func (c *Client) SendResultsQuery() error {
-	agency, err := strconv.Atoi(c.config.ID)
-	if err != nil {
-		log.Errorf("action: send_results_query | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-		return err
-	}
 
 	resultsQueryMessage := shared.ResultsQueryMessage{
-		Agency: agency,
+		Agency: c.config.ID,
 	}
 	messageBytes, err := resultsQueryMessage.Serialize()
 	if err != nil {
@@ -302,7 +296,7 @@ func (c *Client) LoadAgencyBatch(reader *csv.Reader) ([][]string, error) {
 			return nil, err
 		}
 
-		recordWithAgency := append([]string{c.config.ID}, record...)
+		recordWithAgency := append([]string{strconv.Itoa(c.config.ID)}, record...)
 
 		loadedBets = append(loadedBets, recordWithAgency)
 	}
