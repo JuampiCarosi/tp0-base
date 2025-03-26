@@ -40,7 +40,6 @@ def initialize_config():
 global server
 def signal_handler(sig, frame):
     server.shutdown()
-    sys.exit(0)
 
 signal.signal(signal.SIGTERM, signal_handler)
 
