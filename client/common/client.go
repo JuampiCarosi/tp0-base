@@ -45,11 +45,13 @@ func NewClient(config ClientConfig, bet bets.Bet) *Client {
 func (c *Client) createClientSocket() error {
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
-		log.Criticalf(
-			"action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
+		if !c.shutdown {
+			log.Criticalf(
+				"action: connect | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+		}
 		return err
 	}
 	c.conn = conn
