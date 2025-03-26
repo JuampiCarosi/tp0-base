@@ -64,8 +64,10 @@ func (c *Client) StartClientLoop() {
 			break
 		}
 
-		c.createClientSocket()
-
+		err := c.createClientSocket()
+		if err != nil && c.shutdown {
+			break
+		}
 		// TODO: Modify the send to avoid short-write
 		fmt.Fprintf(
 			c.conn,
