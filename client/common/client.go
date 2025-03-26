@@ -28,7 +28,7 @@ type ClientConfig struct {
 type Client struct {
 	config   ClientConfig
 	conn     net.Conn
-	shutdown bool
+	Shutdown bool
 	bet      bets.Bet
 }
 
@@ -37,7 +37,7 @@ type Client struct {
 func NewClient(config ClientConfig, bet bets.Bet) *Client {
 	client := &Client{
 		config:   config,
-		shutdown: false,
+		Shutdown: false,
 		bet:      bet,
 	}
 	return client
@@ -49,7 +49,7 @@ func NewClient(config ClientConfig, bet bets.Bet) *Client {
 func (c *Client) createClientSocket() error {
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
-		if !c.shutdown {
+		if !c.Shutdown {
 			log.Criticalf(
 				"action: connect | result: fail | client_id: %v | error: %v",
 				c.config.ID,
@@ -78,9 +78,9 @@ func (c *Client) SendBatches() error {
 	reader.Comma = ','
 	reader.FieldsPerRecord = -1
 	eof := false
-	for !c.shutdown && !eof {
+	for !c.Shutdown && !eof {
 		// Create the connection the server in every loop iteration. Send an
-		if c.shutdown {
+		if c.Shutdown {
 			break
 		}
 
@@ -96,7 +96,7 @@ func (c *Client) SendBatches() error {
 		}
 
 		err = c.createClientSocket()
-		if err != nil && c.shutdown {
+		if err != nil && c.Shutdown {
 			break
 		}
 		if err != nil {
@@ -195,14 +195,14 @@ func (c *Client) LoadAgencyBatch(reader *csv.Reader) ([][]string, error) {
 
 }
 
-func (c *Client) Cleanup(signal os.Signal) {
-	c.shutdown = true
+func (c *Client) Cleanup(reason string) {
+	c.Shutdown = true
 	if c.conn == nil {
 		return
 	}
 
 	err := c.conn.Close()
 	if err != nil {
-		log.Infof("action: connection_closed | result: success | client_id: %v | signal: %v | closed resource: %v", c.config.ID, signal, err)
+		log.Infof("action: connection_closed | result: success | client_id: %v | reason: %v | closed resource: %v", c.config.ID, reason, err)
 	}
 }
