@@ -96,6 +96,9 @@ func (c *Client) SendBatches() error {
 		}
 
 		err = c.createClientSocket()
+		if err != nil && c.shutdown {
+			break
+		}
 		if err != nil {
 			log.Errorf("action: create_client_socket | result: fail | client_id: %v | error: %v",
 				c.config.ID,
