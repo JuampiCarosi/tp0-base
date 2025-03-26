@@ -110,12 +110,17 @@ func gracefulShutdown(c *common.Client, finished chan bool, wg *sync.WaitGroup) 
 	defer wg.Done()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM)
+	var reason string
 	select {
-	case <-finished:
-		c.Cleanup("client finished")
 	case s := <-quit:
-		c.Cleanup(s.String())
+		reason = s.String()
+		log.Infof("action: graceful_shutdown | result: success | reason: %s", reason)
+	case <-finished:
+		reason = "client finished"
+		log.Infof("action: graceful_shutdown | result: timeout | reason: %s", reason)
 	}
+
+	c.Cleanup(reason)
 }
 
 func main() {
