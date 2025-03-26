@@ -100,7 +100,6 @@ func gracefulShutdown(s *common.Server) {
 	signal.Notify(quit, syscall.SIGTERM)
 	<-quit
 	s.Shutdown()
-	os.Exit(0)
 }
 
 func main() {
