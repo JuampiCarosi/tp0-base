@@ -20,6 +20,7 @@ type Server struct {
 	connections      map[string]net.Conn
 	connectionsMutex sync.Mutex
 	betsMutex        sync.Mutex
+	wg               sync.WaitGroup
 }
 
 func NewServer(address string, agenciesAmount int) (*Server, error) {
@@ -30,6 +31,7 @@ func NewServer(address string, agenciesAmount int) (*Server, error) {
 		connections:      make(map[string]net.Conn),
 		connectionsMutex: sync.Mutex{},
 		betsMutex:        sync.Mutex{},
+		wg:               sync.WaitGroup{},
 	}
 
 	listener, err := net.Listen("tcp", address)
@@ -42,6 +44,9 @@ func NewServer(address string, agenciesAmount int) (*Server, error) {
 }
 
 func (s *Server) Run() {
+	defer s.wg.Done()
+
+	s.wg.Add(1)
 	go s.identifyWinners()
 	for s.running {
 		clientConn, err := s.acceptNewConnection()
@@ -52,6 +57,7 @@ func (s *Server) Run() {
 		s.connectionsMutex.Lock()
 		s.connections[clientConn.RemoteAddr().String()] = clientConn
 		s.connectionsMutex.Unlock()
+		s.wg.Add(1)
 		go s.handleClientConnection(clientConn)
 	}
 }
@@ -88,6 +94,7 @@ func (s *Server) handleClientConnection(clientConn net.Conn) {
 		delete(s.connections, clientConn.RemoteAddr().String())
 		s.connectionsMutex.Unlock()
 	}()
+	defer s.wg.Done()
 
 	errorResponse := shared.BetResponse(false)
 	errorResponseSerialized, err := errorResponse.Serialize()
@@ -216,6 +223,7 @@ func (s *Server) handleAllBetsSentMessage(message *shared.RawMessage) {
 }
 
 func (s *Server) identifyWinners() {
+	defer s.wg.Done()
 	receivedAgencies := make(map[int]bool)
 	for len(receivedAgencies) < s.totalAgencies {
 		agency := <-s.receivedAgencies
