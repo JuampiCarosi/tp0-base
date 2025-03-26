@@ -133,8 +133,6 @@ func (c *Client) StartClientLoop() {
 			)
 		}
 
-		time.Sleep(c.config.LoopPeriod)
-
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
