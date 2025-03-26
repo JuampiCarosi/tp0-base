@@ -81,9 +81,9 @@ En primer lugar se instancia el servidor y crea una go routine que va a estar es
 
 Luego varios clientes se conectan al servidor y van enviando sus apuestas. Los clientes crean una request nueva para cada batch que se envia al servidor y cuando termina de enviar todas las apuestas, se envia un mensaje indicando que esa agencia ya envio todos sus datos.
 
-Del lado del servidor se crea una go routine para request de los clientes para manejarlas en paralelo. Las apuestas se guardan en en disco, utilizando un mutex para que no haya problemas de concurrencia. Al finalizar cada agencia, el handler de requests le envia via channel el la go routine creada al inicio del programa (que se encarga de calcular los ganadores) que esa agencia ya envio todos sus datos.
+Del lado del servidor se crea una go routine para request de los clientes para manejarlas en paralelo. Las apuestas se guardan en en disco, utilizando un mutex para que no haya problemas de concurrencia. Al finalizar cada agencia, el handler de requests le envia via channel a la go routine creada al inicio del programa (que se encarga de calcular los ganadores) que esa agencia ya envio todos sus datos.
 
-Dicha go routine una vez que tiene todas las apuestas levanta todas las mismas del archivo y calcula los ganadores de cada agencia, guardando el resultado en el mapa `Server.winners` el cual esta tambien protegido por un mutex para que no haya problemas de concurrencia cuando los clientes consultan los ganadores.
+Dicha go routine una vez que tiene todas las apuestas levanta todas las mismas del archivo y calcula los ganadores de cada agencia, guardando el resultado en el map `Server.winners` el cual esta tambien protegido por un mutex para que no haya problemas de concurrencia cuando los clientes consultan los ganadores.
 
 Los clientes al finalizar el envio de apuestas, tienen 10 intentos para consultar los ganadores, esperando 100ms entre cada intento. Una vez que el cliente tiene los ganadores, se imprime por pantalla el resultado y termina.
 
