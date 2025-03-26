@@ -110,12 +110,11 @@ func gracefulShutdown(c *common.Client, finished chan bool, wg *sync.WaitGroup) 
 	select {
 	case s := <-quit:
 		reason = s.String()
-		log.Infof("action: graceful_shutdown | result: success | reason: %s", reason)
 	case <-finished:
 		reason = "client finished"
-		log.Infof("action: graceful_shutdown | result: timeout | reason: %s", reason)
 	}
 
+	log.Infof("action: graceful_shutdown | result: success | reason: %s", reason)
 	c.Cleanup(reason)
 }
 func main() {
