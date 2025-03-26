@@ -50,6 +50,7 @@ func (c *Client) createClientSocket() error {
 			c.config.ID,
 			err,
 		)
+		return err
 	}
 	c.conn = conn
 	return nil
@@ -66,6 +67,9 @@ func (c *Client) StartClientLoop() {
 		}
 
 		err := c.createClientSocket()
+		if err != nil && c.shutdown {
+			break
+		}
 		if err != nil {
 			log.Errorf("action: create_client_socket | result: fail | client_id: %v | error: %v",
 				c.config.ID,

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -101,12 +102,12 @@ func PrintConfig(v *viper.Viper) {
 	)
 }
 
-func gracefulShutdown(c *common.Client) {
+func gracefulShutdown(c *common.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM)
 	s := <-quit
 	c.Cleanup(s)
-	os.Exit(0)
 }
 
 func main() {
@@ -138,7 +139,10 @@ func main() {
 	}
 
 	client := common.NewClient(clientConfig, bet)
-	go gracefulShutdown(client)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go gracefulShutdown(client, &wg)
 
 	client.StartClientLoop()
+	wg.Wait()
 }

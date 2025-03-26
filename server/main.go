@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/common"
@@ -92,13 +93,13 @@ func PrintConfig(config *Config) {
 	)
 }
 
-func gracefulShutdown(s *common.Server) {
+func gracefulShutdown(s *common.Server, wg *sync.WaitGroup) {
+	defer wg.Done()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM)
 	receivedSignal := <-quit
 	s.Shutdown()
 	log.Infof("action: graceful_shutdown | result: success | signal: %v", receivedSignal)
-	os.Exit(0)
 }
 
 func main() {
@@ -120,7 +121,9 @@ func main() {
 		log.Errorf("error initializing server: %v", err)
 		os.Exit(1)
 	}
-
-	go gracefulShutdown(server)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go gracefulShutdown(server, &wg)
 	server.Run()
+	wg.Wait()
 }
