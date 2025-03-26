@@ -99,6 +99,7 @@ func gracefulShutdown(c *common.Client, wg *sync.WaitGroup) {
 	signal.Notify(quit, syscall.SIGTERM)
 	s := <-quit
 	c.Cleanup(s)
+	log.Infof("action: graceful_shutdown | result: success")
 }
 
 func main() {
