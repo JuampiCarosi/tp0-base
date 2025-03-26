@@ -20,6 +20,7 @@ type Server struct {
 	connections      map[string]net.Conn
 	connectionsMutex sync.Mutex
 	betsMutex        sync.Mutex
+	winnersMutex     sync.Mutex
 	wg               sync.WaitGroup
 }
 
@@ -31,6 +32,7 @@ func NewServer(address string, agenciesAmount int) (*Server, error) {
 		connections:      make(map[string]net.Conn),
 		connectionsMutex: sync.Mutex{},
 		betsMutex:        sync.Mutex{},
+		winnersMutex:     sync.Mutex{},
 		wg:               sync.WaitGroup{},
 	}
 
@@ -244,7 +246,9 @@ func (s *Server) identifyWinners() {
 		}
 	}
 
+	s.winnersMutex.Lock()
 	s.winners = winners
+	s.winnersMutex.Unlock()
 
 }
 
@@ -255,6 +259,7 @@ func (s *Server) handleResultsQueryMessage(message *shared.RawMessage, clientCon
 		log.Printf("action: handle_results_query_message | result: fail | error: %v", err)
 		return
 	}
+	s.winnersMutex.Lock()
 	if s.winners == nil {
 		message := shared.ResultUnavailableMessage{}
 		messageSerialized, _ := message.Serialize()
@@ -268,4 +273,5 @@ func (s *Server) handleResultsQueryMessage(message *shared.RawMessage, clientCon
 	response := shared.ResultsResponseMessage{Winners: winners}
 	responseSerialized, _ := response.Serialize()
 	shared.WriteSafe(clientConn, responseSerialized)
+	s.winnersMutex.Unlock()
 }
