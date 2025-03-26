@@ -24,6 +24,10 @@ class Server:
         # the server
         while self.running:
             client_sock = self.__accept_new_connection()
+            if client_sock is None and not self.running:
+                break
+            if client_sock is None:
+                continue
             self.current_connection = client_sock
             self.__handle_client_connection(client_sock)
             self.current_connection = None
@@ -63,8 +67,13 @@ class Server:
         Then connection created is printed and returned
         """
 
-        # Connection arrived
-        logging.info('action: accept_connections | result: in_progress')
-        c, addr = self._server_socket.accept()
-        logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
-        return c
+        try:
+            # Connection arrived
+            logging.info('action: accept_connections | result: in_progress')
+            c, addr = self._server_socket.accept()
+            logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
+            return c
+        except OSError as e:
+            if self.running:
+                logging.error(f"action: accept_connections | result: fail | error: {e}")
+            return None
