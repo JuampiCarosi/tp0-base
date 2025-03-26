@@ -23,7 +23,7 @@ type ClientConfig struct {
 type Client struct {
 	config   ClientConfig
 	conn     net.Conn
-	shutdown bool
+	Shutdown bool
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -31,7 +31,7 @@ type Client struct {
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
 		config:   config,
-		shutdown: false,
+		Shutdown: false,
 	}
 	return client
 }
@@ -42,7 +42,7 @@ func NewClient(config ClientConfig) *Client {
 func (c *Client) createClientSocket() error {
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
-		if !c.shutdown {
+		if !c.Shutdown {
 			log.Criticalf(
 				"action: connect | result: fail | client_id: %v | error: %v",
 				c.config.ID,
@@ -61,12 +61,12 @@ func (c *Client) StartClientLoop() {
 	// Messages if the message amount threshold has not been surpassed
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
 		// Create the connection the server in every loop iteration. Send an
-		if c.shutdown {
+		if c.Shutdown {
 			break
 		}
 
 		err := c.createClientSocket()
-		if err != nil && c.shutdown {
+		if err != nil && c.Shutdown {
 			break
 		}
 		// TODO: Modify the send to avoid short-write
@@ -100,7 +100,7 @@ func (c *Client) StartClientLoop() {
 }
 
 func (c *Client) Cleanup(reason string) {
-	c.shutdown = true
+	c.Shutdown = true
 	if c.conn == nil {
 		return
 	}

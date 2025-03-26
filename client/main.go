@@ -138,7 +138,9 @@ func main() {
 
 	client.StartClientLoop()
 
-	finished <- true
+	if !client.Shutdown {
+		finished <- true
+	}
 
 	close(finished)
 	wg.Wait()
