@@ -30,7 +30,11 @@ Para esta seccion se reescribio el codigo del servidor en go como desafio person
 
 Se define un protocolo de comunicación para el envío y la recepción de los paquetes, el mismo es implementado en el archivo `shared/communication.go`. Para los mensajes se creo una interfaz `Message` que define como se serializa y deserializa el mensaje.
 
-El protocolo consiste en un header fijo de 8 bytes que los primeros 4 bytes indican el tipo de mensaje y los ultimos 4 bytes indican el largo del payload. El resto del mensaje es el payload.
+El protocolo consiste en un header fijo de 8 bytes que los primeros 4 bytes indican el tipo de mensaje y los siguientes 4 bytes indican el largo del payload, ambos valores son codificados en big endian. El resto del mensaje es el payload de string representado en bytes.
+
+El mismo esta ejemplificado en el siguiente diagrama:
+
+![Protocolo](protocolo.png)
 
 Para realizar la tarea de recepcion de mensaje se creo una funcion `MessageFromSocket` que recibe un socket y devuelve un mensaje con el tipo, el largo del payload y el payload. Por lo que la funcion `Deserialize` de la interfaz `Message` simplemente recibe el payload y lo deserializa segun el tipo de mensaje.
 
