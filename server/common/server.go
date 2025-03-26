@@ -260,6 +260,7 @@ func (s *Server) handleResultsQueryMessage(message *shared.RawMessage, clientCon
 		return
 	}
 	s.winnersMutex.Lock()
+	defer s.winnersMutex.Unlock()
 	if s.winners == nil {
 		message := shared.ResultUnavailableMessage{}
 		messageSerialized, _ := message.Serialize()
@@ -273,5 +274,4 @@ func (s *Server) handleResultsQueryMessage(message *shared.RawMessage, clientCon
 	response := shared.ResultsResponseMessage{Winners: winners}
 	responseSerialized, _ := response.Serialize()
 	shared.WriteSafe(clientConn, responseSerialized)
-	s.winnersMutex.Unlock()
 }
