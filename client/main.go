@@ -102,14 +102,22 @@ func PrintConfig(v *viper.Viper) {
 	)
 }
 
-func gracefulShutdown(c *common.Client, wg *sync.WaitGroup) {
+func gracefulShutdown(c *common.Client, finished chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM)
-	s := <-quit
-	c.Cleanup(s)
-}
+	var reason string
+	select {
+	case s := <-quit:
+		reason = s.String()
+		log.Infof("action: graceful_shutdown | result: success | reason: %s", reason)
+	case <-finished:
+		reason = "client finished"
+		log.Infof("action: graceful_shutdown | result: timeout | reason: %s", reason)
+	}
 
+	c.Cleanup(reason)
+}
 func main() {
 	v, err := InitConfig()
 	if err != nil {
@@ -141,8 +149,15 @@ func main() {
 	client := common.NewClient(clientConfig, bet)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go gracefulShutdown(client, &wg)
+
+	finished := make(chan bool)
+	go gracefulShutdown(client, finished, &wg)
 
 	client.StartClientLoop()
+
+	if !client.Shutdown {
+		finished <- true
+	}
+
 	wg.Wait()
 }

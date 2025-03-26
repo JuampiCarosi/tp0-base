@@ -2,7 +2,6 @@ package common
 
 import (
 	"net"
-	"os"
 	"time"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/server/bets"
@@ -24,7 +23,7 @@ type ClientConfig struct {
 type Client struct {
 	config   ClientConfig
 	conn     net.Conn
-	shutdown bool
+	Shutdown bool
 	bet      bets.Bet
 }
 
@@ -33,7 +32,7 @@ type Client struct {
 func NewClient(config ClientConfig, bet bets.Bet) *Client {
 	client := &Client{
 		config:   config,
-		shutdown: false,
+		Shutdown: false,
 		bet:      bet,
 	}
 	return client
@@ -45,7 +44,7 @@ func NewClient(config ClientConfig, bet bets.Bet) *Client {
 func (c *Client) createClientSocket() error {
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
-		if !c.shutdown {
+		if !c.Shutdown {
 			log.Criticalf(
 				"action: connect | result: fail | client_id: %v | error: %v",
 				c.config.ID,
@@ -64,12 +63,12 @@ func (c *Client) StartClientLoop() {
 	// Messages if the message amount threshold has not been surpassed
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
 		// Create the connection the server in every loop iteration. Send an
-		if c.shutdown {
+		if c.Shutdown {
 			break
 		}
 
 		err := c.createClientSocket()
-		if err != nil && c.shutdown {
+		if err != nil && c.Shutdown {
 			break
 		}
 		if err != nil {
@@ -137,14 +136,15 @@ func (c *Client) StartClientLoop() {
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
 
-func (c *Client) Cleanup(signal os.Signal) {
-	c.shutdown = true
+func (c *Client) Cleanup(reason string) {
+	c.Shutdown = true
+
 	if c.conn == nil {
 		return
 	}
 
 	err := c.conn.Close()
 	if err != nil {
-		log.Infof("action: connection_closed | result: success | client_id: %v | signal: %v | closed resource: %v", c.config.ID, signal, err)
+		log.Infof("action: connection_closed | result: success | client_id: %v | reason: %v | closed resource: %v", c.config.ID, reason, err)
 	}
 }
