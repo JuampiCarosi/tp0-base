@@ -73,6 +73,20 @@ Las principales modificaciones fueron:
 - Transformar el campo de receivedAgencies a un channel, donde va a haber una go routine esperando a que todas las agencias notifiquen que han enviado sus datos, y una vez que lo hace escribe en el `Server.winners` los ganadores de cada agencia.
 - Crear el campo `Server.betsMutex` para poder manejar la lectura y escritura de los datos de las apuestas ya que estas operaciones no son thread safe. Por mas que `LoadBets` no deberia llamarse a la vez que `SaveBets` u otro `LoadBets`, se opto por igualmente hacerlo thread safe pensando en que en un futuro podrian empezar a recibirse mas apuestas mientras se realiza un sorteo.
 
+De esta forma la arquitectura a la que llegamos seria algo como la siguiente:
+
+![Arquitectura](arquitectura.png)
+
+En primer lugar se instancia el servidor y crea una go routine que va a estar esperando a que todas las agencias finalicen para asi calcular los ganadores.
+
+Luego varios clientes se conectan al servidor y van enviando sus apuestas. Los clientes crean una request nueva para cada batch que se envia al servidor y cuando termina de enviar todas las apuestas, se envia un mensaje indicando que esa agencia ya envio todos sus datos.
+
+Del lado del servidor se crea una go routine para request de los clientes para manejarlas en paralelo. Las apuestas se guardan en en disco, utilizando un mutex para que no haya problemas de concurrencia. Al finalizar cada agencia, el handler de requests le envia via channel el la go routine creada al inicio del programa (que se encarga de calcular los ganadores) que esa agencia ya envio todos sus datos.
+
+Dicha go routine una vez que tiene todas las apuestas levanta todas las mismas del archivo y calcula los ganadores de cada agencia, guardando el resultado en el mapa `Server.winners` el cual esta tambien protegido por un mutex para que no haya problemas de concurrencia cuando los clientes consultan los ganadores.
+
+Los clientes al finalizar el envio de apuestas, tienen 10 intentos para consultar los ganadores, esperando 100ms entre cada intento. Una vez que el cliente tiene los ganadores, se imprime por pantalla el resultado y termina.
+
 ## Condiciones de Entrega
 
 Se espera que los alumnos realicen un _fork_ del presente repositorio para el desarrollo de los ejercicios y que aprovechen el esqueleto provisto tanto (o tan poco) como consideren necesario.
