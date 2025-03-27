@@ -46,7 +46,6 @@ func NewServer(address string, agenciesAmount int) (*Server, error) {
 }
 
 func (s *Server) Run() {
-	defer s.wg.Done()
 
 	s.wg.Add(1)
 	go s.identifyWinners()
