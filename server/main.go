@@ -113,13 +113,14 @@ func main() {
 
 	if err := InitLogger(config.LoggingLevel); err != nil {
 		log.Errorf("error initializing logger: %v", err)
+		return
 
 	}
 
 	server, err := common.NewServer(fmt.Sprintf("%s:%d", config.Ip, config.Port), config.AgenciesAmount)
 	if err != nil {
 		log.Errorf("error initializing server: %v", err)
-
+		return
 	}
 
 	go gracefulShutdown(server)
