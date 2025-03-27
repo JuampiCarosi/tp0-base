@@ -141,6 +141,5 @@ func main() {
 		finished <- true
 	}
 
-	close(finished)
 	wg.Wait()
 }
