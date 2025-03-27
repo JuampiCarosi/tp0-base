@@ -75,6 +75,7 @@ Las principales modificaciones fueron:
 - Transformar el campo de conexion a un map de conexiones y agregar un mutex para poder acceder y modificar el map de forma thread safe.
 - Transformar el metodo `Shutdown` para que cierre todas las conexiones del map.
 - Transformar el campo de receivedAgencies a un channel, donde va a haber una go routine esperando a que todas las agencias notifiquen que han enviado sus datos, y una vez que lo hace escribe en el `Server.winners` los ganadores de cada agencia.
+- Crear el campo `Server.winnersMutex` para poder manejar la lectura y escritura de los datos de los ganadores asi no colisionan lecturas del map con la escritura de los ganadores.
 - Crear el campo `Server.betsMutex` para poder manejar la lectura y escritura de los datos de las apuestas ya que estas operaciones no son thread safe. Por mas que `LoadBets` no deberia llamarse a la vez que `SaveBets` u otro `LoadBets`, se opto por igualmente hacerlo thread safe pensando en que en un futuro podrian empezar a recibirse mas apuestas mientras se realiza un sorteo.
 
 De esta forma la arquitectura a la que llegamos seria algo como la siguiente:
