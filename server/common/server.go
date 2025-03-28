@@ -75,6 +75,15 @@ func (s *Server) Shutdown() {
 		s.serverSocket.Close()
 		log.Printf("action: server_socket_closed | result: success")
 	}
+
+	s.winnersMutex.Lock()
+	if s.winners == nil {
+		s.receivedAgencies <- -1
+	}
+	s.winnersMutex.Unlock()
+
+	s.wg.Wait()
+	log.Print("action: server_shutdown | result: success")
 }
 
 func (s *Server) acceptNewConnection() (net.Conn, error) {
@@ -228,6 +237,10 @@ func (s *Server) identifyWinners() {
 	receivedAgencies := make(map[int]bool)
 	for len(receivedAgencies) < s.totalAgencies {
 		agency := <-s.receivedAgencies
+		if agency == -1 {
+			log.Printf("action: identify_winners_shutdown | result: success")
+			return
+		}
 		receivedAgencies[agency] = true
 	}
 	s.betsMutex.Lock()
